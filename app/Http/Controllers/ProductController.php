@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -14,64 +14,65 @@ class ProductController extends Controller
      * Display a listing of products
      */
     public function index(Request $request): JsonResponse
-{
-    try {
-        $query = Product::query();
+    {
+        try {
+            $query = Product::query();
 
-        // Search functionality
-        if ($request->has('search') && !empty($request->search)) {
-            $query->search($request->search);
-        }
+            // Search functionality
+            if ($request->has('search') && ! empty($request->search)) {
+                $query->search($request->search);
+            }
 
-        // Filter by category
-        if ($request->has('category') && !empty($request->category)) {
-            $query->byCategory($request->category);
-        }
+            // Filter by category
+            if ($request->has('category') && ! empty($request->category)) {
+                $query->byCategory($request->category);
+            }
 
-        // Filter by spicy
-        if ($request->has('is_spicy') && $request->is_spicy !== null) {
-            $query->where('is_spicy', $request->boolean('is_spicy'));
-        }
+            // Filter by spicy
+            if ($request->has('is_spicy') && $request->is_spicy !== null) {
+                $query->where('is_spicy', $request->boolean('is_spicy'));
+            }
 
-        // Filter by vegetarian
-        if ($request->has('is_vegetarian') && $request->is_vegetarian !== null) {
-            $query->where('is_vegetarian', $request->boolean('is_vegetarian'));
-        }
+            // Filter by vegetarian
+            if ($request->has('is_vegetarian') && $request->is_vegetarian !== null) {
+                $query->where('is_vegetarian', $request->boolean('is_vegetarian'));
+            }
 
-        // Filter by featured
-        if ($request->has('is_featured') && $request->is_featured !== null) {
-            $query->where('is_featured', $request->boolean('is_featured'));
-        }
+            // Filter by featured
+            if ($request->has('is_featured') && $request->is_featured !== null) {
+                $query->where('is_featured', $request->boolean('is_featured'));
+            }
 
-        // Sorting
-        $sortBy = $request->get('sort_by', 'created_at');
-        $sortOrder = $request->get('sort_order', 'desc');
-        $query->orderBy($sortBy, $sortOrder);
+            // Sorting
+            $sortBy = $request->get('sort_by', 'created_at');
+            $sortOrder = $request->get('sort_order', 'desc');
+            $query->orderBy($sortBy, $sortOrder);
 
-        // Handle limit parameter (for featured products, etc.)
-        if ($request->has('limit')) {
-            $limit = (int) $request->get('limit');
-            $products = $query->limit($limit)->get();
+            // Handle limit parameter (for featured products, etc.)
+            if ($request->has('limit')) {
+                $limit = (int) $request->get('limit');
+                $products = $query->limit($limit)->get();
+
+                return response()->json($products);
+            }
+
+            // Pagination
+            $perPage = $request->get('per_page', 15);
+
+            if ($request->has('paginate') && $request->paginate === 'false') {
+                $products = $query->get();
+            } else {
+                $products = $query->paginate($perPage);
+            }
+
             return response()->json($products);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to fetch products',
+                'error' => $e->getMessage(),
+            ], 500);
         }
-
-        // Pagination
-        $perPage = $request->get('per_page', 15);
-        
-        if ($request->has('paginate') && $request->paginate === 'false') {
-            $products = $query->get();
-        } else {
-            $products = $query->paginate($perPage);
-        }
-
-        return response()->json($products);
-    } catch (\Exception $e) {
-        return response()->json([
-            'message' => 'Failed to fetch products',
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
     /**
      * Store a newly created product
@@ -87,23 +88,23 @@ class ProductController extends Controller
                 'is_spicy' => 'sometimes|in:true,false,1,0',
                 'is_vegetarian' => 'sometimes|in:true,false,1,0',
                 'is_featured' => 'sometimes|in:true,false,1,0',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
             $data = $validator->validated();
-            
+
             // Convert boolean strings to actual booleans
             $data['is_spicy'] = $this->convertToBoolean($request->get('is_spicy', false));
             $data['is_vegetarian'] = $this->convertToBoolean($request->get('is_vegetarian', false));
             $data['is_featured'] = $this->convertToBoolean($request->get('is_featured', false));
-            
+
             // Handle image upload
             if ($request->hasFile('image')) {
                 $data['image'] = $this->handleImageUpload($request->file('image'));
@@ -113,12 +114,12 @@ class ProductController extends Controller
 
             return response()->json([
                 'message' => 'Product created successfully',
-                'data' => $product->load([])
+                'data' => $product->load([]),
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to create product',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -133,7 +134,7 @@ class ProductController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to fetch product',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -144,6 +145,7 @@ class ProductController extends Controller
     public function update(Request $request, Product $product): JsonResponse
     {
         try {
+            // Laravel automatically handles FormData requests (multipart/form-data)
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string|max:1000',
@@ -152,29 +154,30 @@ class ProductController extends Controller
                 'is_spicy' => 'sometimes|in:true,false,1,0',
                 'is_vegetarian' => 'sometimes|in:true,false,1,0',
                 'is_featured' => 'sometimes|in:true,false,1,0',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:22048'
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:22048',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
             $data = $validator->validated();
 
-            // Convert boolean strings to actual booleans
-            $data['is_spicy'] = $this->convertToBoolean($request->get('is_spicy', false));
-            $data['is_vegetarian'] = $this->convertToBoolean($request->get('is_vegetarian', false));
-            $data['is_featured'] = $this->convertToBoolean($request->get('is_featured', false));
+            // Convert boolean-like strings to actual booleans
+            $data['is_spicy'] = $this->convertToBoolean($request->input('is_spicy', false));
+            $data['is_vegetarian'] = $this->convertToBoolean($request->input('is_vegetarian', false));
+            $data['is_featured'] = $this->convertToBoolean($request->input('is_featured', false));
 
-            // Handle image upload
-            if ($request->hasFile('image')) {
+            // Handle image upload from FormData
+            if ($request->hasFile('image') && $request->file('image')->isValid()) {
                 // Delete old image if exists
                 if ($product->image) {
                     $this->deleteImage($product->image);
                 }
+
                 $data['image'] = $this->handleImageUpload($request->file('image'));
             }
 
@@ -182,12 +185,12 @@ class ProductController extends Controller
 
             return response()->json([
                 'message' => 'Product updated successfully',
-                'data' => $product->fresh()
+                'data' => $product->fresh(),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to update product',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -206,12 +209,12 @@ class ProductController extends Controller
             $product->delete();
 
             return response()->json([
-                'message' => 'Product deleted successfully'
+                'message' => 'Product deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete product',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -223,12 +226,12 @@ class ProductController extends Controller
     {
         try {
             $categories = Product::distinct()->pluck('category')->filter()->values();
-            
+
             return response()->json($categories);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to fetch categories',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -241,15 +244,15 @@ class ProductController extends Controller
         if (is_bool($value)) {
             return $value;
         }
-        
+
         if (is_string($value)) {
             return in_array(strtolower($value), ['true', '1', 'yes', 'on'], true);
         }
-        
+
         if (is_numeric($value)) {
             return (bool) $value;
         }
-        
+
         return false;
     }
 
@@ -259,11 +262,11 @@ class ProductController extends Controller
     private function handleImageUpload($file): string
     {
         // Generate unique filename
-        $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-        
+        $filename = time().'_'.Str::random(10).'.'.$file->getClientOriginalExtension();
+
         // Ensure the directory exists
         $publicPath = public_path('images/products');
-        if (!file_exists($publicPath)) {
+        if (! file_exists($publicPath)) {
             mkdir($publicPath, 0755, true);
         }
 
@@ -279,21 +282,22 @@ class ProductController extends Controller
     private function handleImageUploadWithResize($file): string
     {
         // Generate unique filename
-        $filename = time() . '_' . Str::random(10) . '.' . $file->getClientOriginalExtension();
-        
+        $filename = time().'_'.Str::random(10).'.'.$file->getClientOriginalExtension();
+
         // Ensure the directory exists
         $publicPath = public_path('images/products');
-        if (!file_exists($publicPath)) {
+        if (! file_exists($publicPath)) {
             mkdir($publicPath, 0755, true);
         }
 
         // Get file info
         $originalPath = $file->getPathname();
         $imageInfo = getimagesize($originalPath);
-        
-        if (!$imageInfo) {
+
+        if (! $imageInfo) {
             // If not a valid image, just move it
             $file->move($publicPath, $filename);
+
             return $filename;
         }
 
@@ -333,18 +337,20 @@ class ProductController extends Controller
             default:
                 // Unsupported format, just move the file
                 $file->move($publicPath, $filename);
+
                 return $filename;
         }
 
-        if (!$sourceImage) {
+        if (! $sourceImage) {
             // Failed to create image resource, just move the file
             $file->move($publicPath, $filename);
+
             return $filename;
         }
 
         // Create new image
         $newImage = imagecreatetruecolor($newWidth, $newHeight);
-        
+
         // Preserve transparency for PNG and GIF
         if ($imageType == IMAGETYPE_PNG || $imageType == IMAGETYPE_GIF) {
             imagealphablending($newImage, false);
@@ -357,7 +363,7 @@ class ProductController extends Controller
         imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
         // Save resized image
-        $destinationPath = $publicPath . '/' . $filename;
+        $destinationPath = $publicPath.'/'.$filename;
         switch ($imageType) {
             case IMAGETYPE_JPEG:
                 imagejpeg($newImage, $destinationPath, 85);
@@ -385,7 +391,7 @@ class ProductController extends Controller
      */
     private function deleteImage(string $filename): void
     {
-        $imagePath = public_path('images/products/' . $filename);
+        $imagePath = public_path('images/products/'.$filename);
         if (file_exists($imagePath)) {
             unlink($imagePath);
         }
@@ -399,18 +405,18 @@ class ProductController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'ids' => 'required|array',
-                'ids.*' => 'integer|exists:products,id'
+                'ids.*' => 'integer|exists:products,id',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
             $products = Product::whereIn('id', $request->ids)->get();
-            
+
             // Delete associated images
             foreach ($products as $product) {
                 if ($product->image) {
@@ -423,12 +429,12 @@ class ProductController extends Controller
 
             return response()->json([
                 'message' => 'Products deleted successfully',
-                'deleted_count' => count($request->ids)
+                'deleted_count' => count($request->ids),
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to delete products',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }

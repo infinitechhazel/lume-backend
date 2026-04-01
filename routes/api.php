@@ -49,7 +49,7 @@ Route::prefix('contacts')->group(function () {
     Route::get('/{contact}', [ContactController::class, 'show']);
 });
 Route::get('/reservations/occupied-tables', [ReservationController::class, 'getOccupiedTables']);
-// Reservation Routes
+
 // Reservation Routes
 Route::prefix('reservations')->group(function () {
     // Public routes - MUST be before dynamic routes
@@ -145,7 +145,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Product Management (admin)
 
     Route::put('/products/{product}', [ProductController::class, 'update']);
-    Route::post('/products/{product}', [ProductController::class, 'update']);
+    // Route::post('/products/{product}', [ProductController::class, 'update']);
     Route::delete('/products/{product}', [ProductController::class, 'destroy']);
     Route::post('/products/bulk-delete', [ProductController::class, 'bulkDelete']);
 
@@ -155,7 +155,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
-    // Testimonials Management
+    // Announcement Management
+    Route::post('/announcements' , [AnnouncementController::class, 'store']);
   
   
    
