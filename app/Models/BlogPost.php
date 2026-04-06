@@ -11,8 +11,7 @@ class BlogPost extends Model
     'excerpt',
     'content',
     'author',
-    'video_url',
-    'thumbnail_url',
+    'image_url',
 ];
 
 }

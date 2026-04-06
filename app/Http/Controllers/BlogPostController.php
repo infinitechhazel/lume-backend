@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BlogPost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class BlogPostController extends Controller
 {
@@ -15,8 +16,7 @@ class BlogPostController extends Controller
     {
         try {
             Log::info('Blog post store request received', [
-                'has_video_file' => $request->hasFile('video'),
-                'has_thumbnail_file' => $request->hasFile('thumbnail'),
+                'has_image_file' => $request->hasFile('image'),
             ]);
 
             $validated = $request->validate([
@@ -24,24 +24,19 @@ class BlogPostController extends Controller
                 'excerpt' => 'required|string',
                 'content' => 'required|string',
                 'author' => 'required|string',
-                'video' => 'nullable|mimes:mp4,webm,ogg|max:102400',
-                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
             ]);
 
-            if ($request->hasFile('video')) {
-                $file = $request->file('video');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('videos/blog'), $filename);
-                $validated['video_url'] = '/videos/blog/' . $filename;
-                Log::info('Video uploaded', ['path' => $validated['video_url']]);
-            }
+            if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $filename = time().'_'.$file->getClientOriginalName();
+                $file->move(public_path('images/blog'), $filename);
 
-            if ($request->hasFile('thumbnail')) {
-                $file = $request->file('thumbnail');
-                $filename = time() . '_thumbnail_' . $file->getClientOriginalName();
-                $file->move(public_path('images/thumbnails'), $filename);
-                $validated['thumbnail_url'] = '/images/thumbnails/' . $filename;
-                Log::info('Thumbnail uploaded', ['path' => $validated['thumbnail_url']]);
+                $validated['image_url'] = '/images/blog/'.$filename;
+
+                Log::info('Image uploaded', [
+                    'path' => $validated['image_url'],
+                ]);
             }
 
             Log::info('Creating blog post with data', $validated);
@@ -49,19 +44,23 @@ class BlogPostController extends Controller
             $blogPost = BlogPost::create($validated);
 
             return response()->json($blogPost, 201);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+
+        } catch (ValidationException $e) {
             Log::error('Validation error', ['errors' => $e->errors()]);
+
             return response()->json([
                 'error' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
+
         } catch (\Exception $e) {
-            Log::error('Blog post creation error: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
+            Log::error('Blog post creation error: '.$e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'error' => 'Failed to create blog post',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -93,39 +92,32 @@ class BlogPostController extends Controller
                 'excerpt' => 'string',
                 'content' => 'string',
                 'author' => 'string',
-                'video' => 'nullable|mimes:mp4,webm,ogg|max:102400',
-                'thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
+                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:20480',
             ]);
 
-            if ($request->hasFile('video')) {
-                if ($blogPost->video_url && file_exists(public_path($blogPost->video_url))) {
-                    unlink(public_path($blogPost->video_url));
+            if ($request->hasFile('image')) {
+                // delete old image if exists
+                if ($blogPost->image_url && file_exists(public_path($blogPost->image_url))) {
+                    unlink(public_path($blogPost->image_url));
                 }
 
-                $file = $request->file('video');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('videos/blog'), $filename);
-                $validated['video_url'] = '/videos/blog/' . $filename;
-            }
+                $file = $request->file('image');
+                $filename = time().'_'.$file->getClientOriginalName();
+                $file->move(public_path('images/blog'), $filename);
 
-            if ($request->hasFile('thumbnail')) {
-                if ($blogPost->thumbnail_url && file_exists(public_path($blogPost->thumbnail_url))) {
-                    unlink(public_path($blogPost->thumbnail_url));
-                }
-
-                $file = $request->file('thumbnail');
-                $filename = time() . '_thumbnail_' . $file->getClientOriginalName();
-                $file->move(public_path('images/thumbnails'), $filename);
-                $validated['thumbnail_url'] = '/images/thumbnails/' . $filename;
+                $validated['image_url'] = '/images/blog/'.$filename;
             }
 
             $blogPost->update($validated);
-            return $blogPost;
+
+            return response()->json($blogPost);
+
         } catch (\Exception $e) {
-            Log::error('Blog post update error: ' . $e->getMessage());
+            Log::error('Blog post update error: '.$e->getMessage());
+
             return response()->json([
                 'error' => 'Failed to update blog post',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -135,16 +127,12 @@ class BlogPostController extends Controller
      */
     public function destroy(BlogPost $blogPost)
     {
-        // Delete video if exists
-        if ($blogPost->video_url && file_exists(public_path($blogPost->video_url))) {
-            unlink(public_path($blogPost->video_url));
+        // Delete image if exists
+        if ($blogPost->image_url && file_exists(public_path($blogPost->image_url))) {
+            unlink(public_path($blogPost->image_url));
         }
 
-        // Delete thumbnail if exists
-        if ($blogPost->thumbnail_url && file_exists(public_path($blogPost->thumbnail_url))) {
-            unlink(public_path($blogPost->thumbnail_url));
-        }
-
+        // Delete DB record
         $blogPost->delete();
 
         return response()->json(['message' => 'Blog post deleted successfully']);
