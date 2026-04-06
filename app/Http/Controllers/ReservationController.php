@@ -170,7 +170,7 @@ class ReservationController extends Controller
             'is_walkin' => 'sometimes|boolean',
             'reservation_fee' => 'sometimes|numeric|min:0',
             'reservation_fee_paid' => 'sometimes|boolean',
-            'payment_method' => 'nullable|string|in:gcash,security_bank',
+            'payment_method' => 'nullable|string',
             'payment_reference' => 'nullable|string|max:255',
             'payment_screenshot' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
         ];
