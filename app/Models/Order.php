@@ -15,6 +15,7 @@ class Order extends Model
         'user_id',
         'order_number',
         'total_amount',
+        'delivery_fee',         
         'payment_method',
         'payment_status',
         'order_status',
@@ -31,6 +32,7 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'delivery_fee' => 'decimal:2', 
         'delivered_at' => 'datetime',
     ];
 

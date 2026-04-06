@@ -2,26 +2,25 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
-use Illuminate\Support\Facades\Storage;
 class OrderController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
@@ -31,7 +30,7 @@ class OrderController extends Controller
             $query = Order::with(['orderItems']);
 
             // If not admin, filter by user_id
-            if (!$isAdmin) {
+            if (! $isAdmin) {
                 $query->where('user_id', $user->id);
             }
 
@@ -46,10 +45,10 @@ class OrderController extends Controller
                 }
 
                 if ($request->has('search')) {
-                    $query->where(function($q) use ($request) {
-                        $q->where('order_number', 'like', '%' . $request->search . '%')
-                          ->orWhere('customer_name', 'like', '%' . $request->search . '%')
-                          ->orWhere('customer_email', 'like', '%' . $request->search . '%');
+                    $query->where(function ($q) use ($request) {
+                        $q->where('order_number', 'like', '%'.$request->search.'%')
+                            ->orWhere('customer_name', 'like', '%'.$request->search.'%')
+                            ->orWhere('customer_email', 'like', '%'.$request->search.'%');
                     });
                 }
             }
@@ -59,11 +58,11 @@ class OrderController extends Controller
 
             // Transform the data to match frontend expectations
             $transformedOrders = $orders->getCollection()->map(function ($order) {
-                $totalAmount = is_numeric($order->total_amount) ? (float)$order->total_amount : 0.00;
+                $totalAmount = is_numeric($order->total_amount) ? (float) $order->total_amount : 0.00;
 
                 return [
                     'id' => $order->id,
-                    'order_number' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    'order_number' => $order->order_number ?? 'ORD-'.str_pad($order->id, 6, '0', STR_PAD_LEFT),
                     'customer_name' => $order->customer_name ?? '',
                     'customer_email' => $order->customer_email ?? '',
                     'customer_phone' => $order->customer_phone ?? '',
@@ -81,13 +80,13 @@ class OrderController extends Controller
                             'id' => $item->id,
                             'name' => $item->name ?? '',
                             'description' => $item->description ?? '',
-                            'price' => is_numeric($item->price) ? (float)$item->price : 0.00,
-                            'quantity' => is_numeric($item->quantity) ? (int)$item->quantity : 1,
+                            'price' => is_numeric($item->price) ? (float) $item->price : 0.00,
+                            'quantity' => is_numeric($item->quantity) ? (int) $item->quantity : 1,
                             'category' => $item->category ?? 'Japanese Food',
-                            'is_spicy' => (bool)($item->is_spicy ?? false),
-                            'is_vegetarian' => (bool)($item->is_vegetarian ?? false),
+                            'is_spicy' => (bool) ($item->is_spicy ?? false),
+                            'is_vegetarian' => (bool) ($item->is_vegetarian ?? false),
                             'image_url' => $item->image_url ?? 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-                            'subtotal' => is_numeric($item->subtotal) ? (float)$item->subtotal : ((float)$item->price * (int)$item->quantity),
+                            'subtotal' => is_numeric($item->subtotal) ? (float) $item->subtotal : ((float) $item->price * (int) $item->quantity),
                         ];
                     })->toArray(),
                     'created_at' => $order->created_at,
@@ -104,15 +103,16 @@ class OrderController extends Controller
                     'last_page' => $orders->lastPage(),
                     'per_page' => $orders->perPage(),
                     'total' => $orders->total(),
-                ]
+                ],
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve orders: ' . $e->getMessage());
+            Log::error('Failed to retrieve orders: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve orders',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -121,10 +121,10 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
@@ -134,25 +134,25 @@ class OrderController extends Controller
             $query = Order::with(['orderItems']);
 
             // If not admin, filter by user_id
-            if (!$isAdmin) {
+            if (! $isAdmin) {
                 $query->where('user_id', $user->id);
             }
 
             $order = $query->where('id', $id)->first();
 
-            if (!$order) {
+            if (! $order) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order not found'
+                    'message' => 'Order not found',
                 ], 404);
             }
 
-            $totalAmount = is_numeric($order->total_amount) ? (float)$order->total_amount : 0.00;
+            $totalAmount = is_numeric($order->total_amount) ? (float) $order->total_amount : 0.00;
 
             // Transform the data
             $transformedOrder = [
                 'id' => $order->id,
-                'order_number' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'order_number' => $order->order_number ?? 'ORD-'.str_pad($order->id, 6, '0', STR_PAD_LEFT),
                 'customer_name' => $order->customer_name ?? '',
                 'customer_email' => $order->customer_email ?? '',
                 'customer_phone' => $order->customer_phone ?? '',
@@ -170,13 +170,13 @@ class OrderController extends Controller
                         'id' => $item->id,
                         'name' => $item->name ?? '',
                         'description' => $item->description ?? '',
-                        'price' => is_numeric($item->price) ? (float)$item->price : 0.00,
-                        'quantity' => is_numeric($item->quantity) ? (int)$item->quantity : 1,
+                        'price' => is_numeric($item->price) ? (float) $item->price : 0.00,
+                        'quantity' => is_numeric($item->quantity) ? (int) $item->quantity : 1,
                         'category' => $item->category ?? 'Japanese Food',
-                        'is_spicy' => (bool)($item->is_spicy ?? false),
-                        'is_vegetarian' => (bool)($item->is_vegetarian ?? false),
+                        'is_spicy' => (bool) ($item->is_spicy ?? false),
+                        'is_vegetarian' => (bool) ($item->is_vegetarian ?? false),
                         'image_url' => $item->image_url ?? 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&fit=crop',
-                        'subtotal' => is_numeric($item->subtotal) ? (float)$item->subtotal : ((float)$item->price * (int)$item->quantity),
+                        'subtotal' => is_numeric($item->subtotal) ? (float) $item->subtotal : ((float) $item->price * (int) $item->quantity),
                     ];
                 })->toArray(),
                 'created_at' => $order->created_at,
@@ -186,15 +186,16 @@ class OrderController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Order retrieved successfully',
-                'data' => $transformedOrder
+                'data' => $transformedOrder,
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to retrieve order: ' . $e->getMessage());
+            Log::error('Failed to retrieve order: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -203,20 +204,20 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
             // Check if user is admin
             $isAdmin = $user->role === 'admin' || $user->is_admin || $request->header('X-Admin-Request') === 'true';
 
-            if (!$isAdmin) {
+            if (! $isAdmin) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Admin access required'
+                    'message' => 'Admin access required',
                 ], 403);
             }
 
@@ -228,16 +229,16 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
             $order = Order::find($id);
 
-            if (!$order) {
+            if (! $order) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Order not found'
+                    'message' => 'Order not found',
                 ], 404);
             }
 
@@ -253,16 +254,17 @@ class OrderController extends Controller
                         'id' => $order->id,
                         'order_status' => $order->order_status,
                         'updated_at' => $order->updated_at,
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Failed to update order: ' . $e->getMessage());
+            Log::error('Failed to update order: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update order',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -271,15 +273,15 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
-            Log::info('Creating order for user: ' . $user->id);
-            Log::info('Request data: ' . json_encode($request->all()));
+            Log::info('Creating order for user: '.$user->id);
+            Log::info('Request data: '.json_encode($request->all()));
 
             $validator = Validator::make($request->all(), [
                 'items' => 'required|array|min:1',
@@ -303,11 +305,12 @@ class OrderController extends Controller
             ]);
 
             if ($validator->fails()) {
-                Log::error('Validation failed: ' . json_encode($validator->errors()));
+                Log::error('Validation failed: '.json_encode($validator->errors()));
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
@@ -316,49 +319,49 @@ class OrderController extends Controller
             $receiptUrl = null;
             if ($request->receipt_file) {
                 try {
-                    Log::info('[v0] Processing receipt file, length: ' . strlen($request->receipt_file));
-                    
+                    Log::info('[v0] Processing receipt file, length: '.strlen($request->receipt_file));
+
                     // Check if it's a base64 image
                     if (preg_match('/^data:image\/(\w+);base64,/', $request->receipt_file, $matches)) {
-                        Log::info('[v0] Base64 image detected, format: ' . $matches[1]);
-                        
+                        Log::info('[v0] Base64 image detected, format: '.$matches[1]);
+
                         // Extract and decode base64
                         $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $request->receipt_file);
                         $imageData = base64_decode($imageData, true);
-                        
+
                         if ($imageData === false) {
                             Log::error('[v0] Failed to decode base64 image');
                             throw new \Exception('Invalid base64 image data');
                         }
-                        
-                        Log::info('[v0] Decoded image size: ' . strlen($imageData) . ' bytes');
-                        
-                        $filename = 'receipt_' . time() . '_' . $user->id . '.png';
+
+                        Log::info('[v0] Decoded image size: '.strlen($imageData).' bytes');
+
+                        $filename = 'receipt_'.time().'_'.$user->id.'.png';
                         $publicDir = public_path('receipts');
-                        
+
                         // Create directory if it doesn't exist
-                        if (!file_exists($publicDir)) {
+                        if (! file_exists($publicDir)) {
                             mkdir($publicDir, 0755, true);
                         }
-                        
+
                         // Save file directly to public folder
-                        $filePath = $publicDir . '/' . $filename;
+                        $filePath = $publicDir.'/'.$filename;
                         if (file_put_contents($filePath, $imageData)) {
-                            $receiptUrl = 'receipts/' . $filename;
-                            Log::info('[v0] Receipt saved to public path: ' . $receiptUrl);
+                            $receiptUrl = 'receipts/'.$filename;
+                            Log::info('[v0] Receipt saved to public path: '.$receiptUrl);
                         } else {
                             Log::error('[v0] Failed to write receipt file to public directory');
                             throw new \Exception('Failed to save receipt file');
                         }
-                    } else if (filter_var($request->receipt_file, FILTER_VALIDATE_URL)) {
+                    } elseif (filter_var($request->receipt_file, FILTER_VALIDATE_URL)) {
                         // If it's already a URL, use it as-is
                         $receiptUrl = $request->receipt_file;
-                        Log::info('[v0] Using provided URL as receipt: ' . $receiptUrl);
+                        Log::info('[v0] Using provided URL as receipt: '.$receiptUrl);
                     } else {
                         Log::warning('[v0] Receipt data is neither valid base64 nor URL');
                     }
                 } catch (\Exception $e) {
-                    Log::error('[v0] Receipt processing error: ' . $e->getMessage());
+                    Log::error('[v0] Receipt processing error: '.$e->getMessage());
                     // Continue without receipt - don't fail the entire order
                     $receiptUrl = null;
                 }
@@ -366,20 +369,24 @@ class OrderController extends Controller
 
             $totalAmount = 0;
             foreach ($request->items as $item) {
-                $totalAmount += (float)$item['price'] * (int)$item['quantity'];
+                $totalAmount += (float) $item['price'] * (int) $item['quantity'];
             }
 
-            Log::info('Calculated total amount: ' . $totalAmount);
+            Log::info('Calculated total amount: '.$totalAmount);
 
-            $orderNumber = 'ORD-' . time() . rand(100, 999);
+            $deliveryFee = (float) $request->delivery_fee;
+            $totalAmount += $deliveryFee;
 
-            Log::info('Creating order with number: ' . $orderNumber);
-            Log::info('[v0] Final receipt URL: ' . ($receiptUrl ?? 'null'));
+            $orderNumber = 'ORD-'.time().rand(100, 999);
+
+            Log::info('Creating order with number: '.$orderNumber);
+            Log::info('[v0] Final receipt URL: '.($receiptUrl ?? 'null'));
 
             $order = Order::create([
                 'user_id' => $user->id,
                 'order_number' => $orderNumber,
                 'total_amount' => $totalAmount,
+                'delivery_fee' => $deliveryFee,
                 'payment_method' => $request->payment_method,
                 'payment_status' => 'pending',
                 'delivery_address' => $request->delivery_address,
@@ -393,7 +400,7 @@ class OrderController extends Controller
                 'order_status' => 'pending',
             ]);
 
-            Log::info('Order created with ID: ' . $order->id);
+            Log::info('Order created with ID: '.$order->id);
 
             // Handle items
             foreach ($request->items as $item) {
@@ -401,13 +408,13 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'name' => $item['name'],
                     'description' => $item['description'] ?? null,
-                    'price' => (float)$item['price'],
-                    'quantity' => (int)$item['quantity'],
+                    'price' => (float) $item['price'],
+                    'quantity' => (int) $item['quantity'],
                     'category' => $item['category'] ?? 'Japanese Food',
-                    'is_spicy' => (bool)($item['is_spicy'] ?? false),
-                    'is_vegetarian' => (bool)($item['is_vegetarian'] ?? false),
+                    'is_spicy' => (bool) ($item['is_spicy'] ?? false),
+                    'is_vegetarian' => (bool) ($item['is_vegetarian'] ?? false),
                     'image_url' => $item['image_url'] ?? null,
-                    'subtotal' => (float)$item['price'] * (int)$item['quantity'],
+                    'subtotal' => (float) $item['price'] * (int) $item['quantity'],
                 ]);
             }
 
@@ -429,7 +436,8 @@ class OrderController extends Controller
                 'payment_method' => $order->payment_method,
                 'payment_status' => $order->payment_status,
                 'order_status' => $order->order_status,
-                'total_amount' => (float)$order->total_amount,
+                'total_amount' => (float) $order->total_amount,
+                'delivery_fee' => $order->delivery_fee,
                 'notes' => $order->notes,
                 'receipt_file' => $order->receipt_file,
                 'order_items' => $order->orderItems->toArray(),
@@ -443,15 +451,15 @@ class OrderController extends Controller
                 'success' => true,
                 'message' => 'Order created successfully',
                 'data' => [
-                    'order' => $transformedOrder
-                ]
+                    'order' => $transformedOrder,
+                ],
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Failed to create order: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            
+            Log::error('Failed to create order: '.$e->getMessage());
+            Log::error('Stack trace: '.$e->getTraceAsString());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create order',
@@ -467,10 +475,10 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
@@ -482,17 +490,17 @@ class OrderController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors' => $validator->errors(),
                 ], 422);
             }
 
             $base64Image = $request->receipt_file;
 
             // Validate base64 format
-            if (!preg_match('/^data:image\/(png|jpg|jpeg|gif|webp);base64,/', $base64Image)) {
+            if (! preg_match('/^data:image\/(png|jpg|jpeg|gif|webp);base64,/', $base64Image)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid image format'
+                    'message' => 'Invalid image format',
                 ], 422);
             }
 
@@ -503,45 +511,46 @@ class OrderController extends Controller
             if ($imageData === false) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to decode image'
+                    'message' => 'Failed to decode image',
                 ], 422);
             }
 
             // Generate unique filename
-            $filename = 'receipt_' . time() . '_' . $user->id . '.png';
-            
+            $filename = 'receipt_'.time().'_'.$user->id.'.png';
+
             // Create receipts directory if it doesn't exist
             $uploadsPath = public_path('uploads/receipts');
-            if (!file_exists($uploadsPath)) {
+            if (! file_exists($uploadsPath)) {
                 mkdir($uploadsPath, 0755, true);
             }
 
             // Full file path
-            $filePath = $uploadsPath . '/' . $filename;
-            
+            $filePath = $uploadsPath.'/'.$filename;
+
             // Save the file to public directory
             file_put_contents($filePath, $imageData);
 
             // Generate public URL
-            $fileUrl = url('uploads/receipts/' . $filename);
+            $fileUrl = url('uploads/receipts/'.$filename);
 
-            Log::info('Receipt uploaded successfully: ' . $fileUrl);
+            Log::info('Receipt uploaded successfully: '.$fileUrl);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Receipt uploaded successfully',
                 'data' => [
                     'file_path' => $fileUrl,
-                    'filename' => $filename
-                ]
+                    'filename' => $filename,
+                ],
             ], 200);
 
         } catch (\Exception $e) {
-            Log::error('Failed to upload receipt: ' . $e->getMessage());
+            Log::error('Failed to upload receipt: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload receipt',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -550,19 +559,19 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
             $orderItems = OrderItem::whereHas('order', function ($query) use ($user) {
                 $query->where('user_id', $user->id);
             })
-            ->with(['order:id,order_number,created_at,order_status'])
-            ->orderBy('created_at', 'desc')
-            ->paginate(20);
+                ->with(['order:id,order_number,created_at,order_status'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(20);
 
             return response()->json([
                 'success' => true,
@@ -574,15 +583,15 @@ class OrderController extends Controller
                         'last_page' => $orderItems->lastPage(),
                         'per_page' => $orderItems->perPage(),
                         'total' => $orderItems->total(),
-                    ]
-                ]
+                    ],
+                ],
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve order items',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -591,10 +600,10 @@ class OrderController extends Controller
     {
         try {
             $user = $request->user();
-            if (!$user) {
+            if (! $user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized access'
+                    'message' => 'Unauthorized access',
                 ], 401);
             }
 
@@ -602,137 +611,139 @@ class OrderController extends Controller
             $isAdmin = $user->role === 'admin' || $user->is_admin || $request->header('X-Admin-Request') === 'true';
 
             $order = Order::findOrFail($id);
-            
+
             // Only admins or order owners can delete
-            if (!$isAdmin && $order->user_id !== $user->id) {
+            if (! $isAdmin && $order->user_id !== $user->id) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized to delete this order'
+                    'message' => 'Unauthorized to delete this order',
                 ], 403);
             }
-            
+
             // Log the deletion attempt
             Log::info("Deleting order #{$order->order_number} (ID: {$id}) by user {$user->id}");
-            
+
             // Delete receipt file if exists
             if ($order->receipt_file && str_contains($order->receipt_file, 'uploads/receipts/')) {
                 $filename = basename($order->receipt_file);
-                $filePath = public_path('uploads/receipts/' . $filename);
+                $filePath = public_path('uploads/receipts/'.$filename);
                 if (file_exists($filePath)) {
                     unlink($filePath);
-                    Log::info("Deleted receipt file: " . $filePath);
+                    Log::info('Deleted receipt file: '.$filePath);
                 }
             }
-            
+
             // Delete related order items first (if cascade delete is not set up in database)
             $order->orderItems()->delete();
-            
+
             // Delete the order
             $order->delete();
-            
+
             Log::info("Successfully deleted order #{$order->order_number}");
-            
+
             return response()->json([
                 'success' => true,
-                'message' => 'Order deleted successfully'
+                'message' => 'Order deleted successfully',
             ], 200);
-            
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+
+        } catch (ModelNotFoundException $e) {
             Log::error("Order not found for deletion: ID {$id}");
+
             return response()->json([
                 'success' => false,
-                'message' => 'Order not found'
+                'message' => 'Order not found',
             ], 404);
-            
+
         } catch (\Exception $e) {
-            Log::error("Error deleting order ID {$id}: " . $e->getMessage());
+            Log::error("Error deleting order ID {$id}: ".$e->getMessage());
             Log::error($e->getTraceAsString());
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete order: ' . $e->getMessage()
+                'message' => 'Failed to delete order: '.$e->getMessage(),
             ], 500);
         }
     }
+
     public function cancelOrder(Request $request, $id): JsonResponse
-{
-    try {
-        $user = $request->user();
-        
-        if (!$user) {
+    {
+        try {
+            $user = $request->user();
+
+            if (! $user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized access',
+                ], 401);
+            }
+
+            $order = Order::find($id);
+
+            if (! $order) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order not found',
+                ], 404);
+            }
+
+            // Check if order belongs to the authenticated user
+            if ($order->user_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You can only cancel your own orders',
+                ], 403);
+            }
+
+            // Check if order can be cancelled
+            $cancellableStatuses = ['pending', 'confirmed'];
+            if (! in_array($order->order_status, $cancellableStatuses)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Order cannot be cancelled at this stage. Only pending or confirmed orders can be cancelled.',
+                    'current_status' => $order->order_status,
+                ], 400);
+            }
+
+            // Cancel the order
+            $previousStatus = $order->order_status;
+            $order->order_status = 'cancelled';
+            $order->save();
+
+            // Optional: Log the cancellation
+            Log::info('Order cancelled by user', [
+                'order_id' => $order->id,
+                'order_number' => $order->order_number,
+                'user_id' => $user->id,
+                'previous_status' => $previousStatus,
+                'cancelled_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order cancelled successfully',
+                'data' => [
+                    'order' => [
+                        'id' => $order->id,
+                        'order_number' => $order->order_number,
+                        'order_status' => $order->order_status,
+                        'previous_status' => $previousStatus,
+                        'updated_at' => $order->updated_at,
+                    ],
+                ],
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to cancel order: '.$e->getMessage(), [
+                'order_id' => $id,
+                'user_id' => $request->user()->id ?? null,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized access'
-            ], 401);
+                'message' => 'Failed to cancel order. Please try again later.',
+                'error' => config('app.debug') ? $e->getMessage() : null,
+            ], 500);
         }
-
-        $order = Order::find($id);
-
-        if (!$order) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order not found'
-            ], 404);
-        }
-
-        // Check if order belongs to the authenticated user
-        if ($order->user_id !== $user->id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You can only cancel your own orders'
-            ], 403);
-        }
-
-        // Check if order can be cancelled
-        $cancellableStatuses = ['pending', 'confirmed'];
-        if (!in_array($order->order_status, $cancellableStatuses)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Order cannot be cancelled at this stage. Only pending or confirmed orders can be cancelled.',
-                'current_status' => $order->order_status
-            ], 400);
-        }
-
-        // Cancel the order
-        $previousStatus = $order->order_status;
-        $order->order_status = 'cancelled';
-        $order->save();
-
-        // Optional: Log the cancellation
-        Log::info('Order cancelled by user', [
-            'order_id' => $order->id,
-            'order_number' => $order->order_number,
-            'user_id' => $user->id,
-            'previous_status' => $previousStatus,
-            'cancelled_at' => now()
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Order cancelled successfully',
-            'data' => [
-                'order' => [
-                    'id' => $order->id,
-                    'order_number' => $order->order_number,
-                    'order_status' => $order->order_status,
-                    'previous_status' => $previousStatus,
-                    'updated_at' => $order->updated_at,
-                ]
-            ]
-        ], 200);
-
-    } catch (\Exception $e) {
-        Log::error('Failed to cancel order: ' . $e->getMessage(), [
-            'order_id' => $id,
-            'user_id' => $request->user()->id ?? null,
-            'trace' => $e->getTraceAsString()
-        ]);
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to cancel order. Please try again later.',
-            'error' => config('app.debug') ? $e->getMessage() : null
-        ], 500);
     }
-}
 }
