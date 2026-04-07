@@ -47,10 +47,11 @@ class DashboardController extends Controller
         // Popular Products (from order items - using stored product data)
         $popularProducts = OrderItem::select(
                 'name',
+                'category',
                 DB::raw('SUM(quantity) as total_sold'),
                 DB::raw('SUM(subtotal) as revenue')
             )
-            ->groupBy('name')
+            ->groupBy('name', 'category')
             ->orderBy('total_sold', 'desc')
             ->limit(10)
             ->get();
