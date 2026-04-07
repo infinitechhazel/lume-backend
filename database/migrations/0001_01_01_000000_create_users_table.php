@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('password');
 
             $table->enum('role', ['admin', 'customer'])->default('customer');
-            $table->enum('status', ['active', 'inactive'])->default('active');
+            $table->enum('status', ['active', 'inactive', 'deactivated'])->default('active');
 
             $table->string('verification_token')->nullable();
             $table->timestamp('verification_token_expiry')->nullable();
