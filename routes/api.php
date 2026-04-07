@@ -1,21 +1,21 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ContactController;
+use App\Http\Controllers\AddressController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BlogPostController;
+use App\Http\Controllers\ContactController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EventController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\UserController;
-use App\Http\Controllers\TestimonialController;
-use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\ReservationController;
-use App\Http\Controllers\BlogPostController;
-use App\Http\Controllers\EventController;
-use App\Http\Controllers\ChefController;
-use App\Http\Controllers\AddressController;
 use App\Http\Controllers\SupportTicketController;
+use App\Http\Controllers\TestimonialController;
+use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -29,17 +29,17 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
-    
-    // 👇 Limit login attempts to 5 per minute per IP
+
+    // Limit login attempts to 5 per minute per IP
     Route::middleware('throttle:5,1')->post('/login', [AuthController::class, 'login']);
-    
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::put('/profile', [AuthController::class, 'updateProfile']);
     });
 });
-  Route::delete('/contact/{contact}', [ContactController::class, 'destroy']);
+Route::delete('/contact/{contact}', [ContactController::class, 'destroy']);
 
 // Contact Routes
 Route::prefix('contacts')->group(function () {
@@ -56,7 +56,7 @@ Route::prefix('reservations')->group(function () {
     Route::get('/occupied', [ReservationController::class, 'getOccupiedTables']);
     Route::post('/', [ReservationController::class, 'store']);
     Route::get('/', [ReservationController::class, 'index']);
-    
+
     // Protected routes (require authentication)
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/upcoming', [ReservationController::class, 'upcoming']);
@@ -113,7 +113,7 @@ Route::prefix('events')->group(function () {
     Route::get('/', [EventController::class, 'index']);
     Route::get('/{id}', [EventController::class, 'show']);
     Route::post('/', [EventController::class, 'store']); // Public - anyone can book
-    
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}', [EventController::class, 'update']);
         Route::put('/{id}', [EventController::class, 'update']);
@@ -121,19 +121,10 @@ Route::prefix('events')->group(function () {
     });
 });
 
-// Chef Routes
-Route::prefix('chefs')->group(function () {
-    Route::get('/', [ChefController::class, 'index']);
-    Route::post('/', [ChefController::class, 'store']);
-    Route::get('/{chef}', [ChefController::class, 'show']);
-    Route::put('/{chef}', [ChefController::class, 'update']);
-    Route::delete('/{chef}', [ChefController::class, 'delete']);
-});
-
 // Protected Routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
     // Order Routes
-    
+
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
@@ -141,7 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/orders/{id}', [OrderController::class, 'update']);
     Route::get('/order-items', [OrderController::class, 'getOrderItems']);
     Route::delete('/orders/{id}', [OrderController::class, 'destroy']);
- Route::post('/orders/{id}/cancel', [OrderController::class, 'cancelOrder']);
+    Route::post('/orders/{id}/cancel', [OrderController::class, 'cancelOrder']);
     // Product Management (admin)
 
     Route::put('/products/{product}', [ProductController::class, 'update']);
@@ -156,15 +147,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     // Announcement Management
-    Route::post('/announcements' , [AnnouncementController::class, 'store']);
-  
-  
-   
+    Route::post('/announcements', [AnnouncementController::class, 'store']);
+
 });
-  Route::put('/testimonials/{testimonial}', [TestimonialController::class, 'update']);
-  Route::post('/testimonials', [TestimonialController::class, 'store']);
-    Route::post('/products', [ProductController::class, 'store']);
-    Route::get('/auth/verify-email', [AuthController::class, 'verifyEmail']);
+Route::put('/testimonials/{testimonial}', [TestimonialController::class, 'update']);
+Route::post('/testimonials', [TestimonialController::class, 'store']);
+Route::post('/products', [ProductController::class, 'store']);
+Route::get('/auth/verify-email', [AuthController::class, 'verifyEmail']);
 Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification']);
 Route::delete('testimonials/{testimonial}', [TestimonialController::class, 'destroy']);
 Route::middleware('auth:sanctum')->group(function () {
@@ -177,5 +166,5 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 Route::apiResource('support-tickets', SupportTicketController::class);
 Route::put('/support-tickets/{supportTicket}', [SupportTicketController::class, 'update']);
-   Route::post('/contact/{contact}/reply', [ContactController::class, 'storeReply']);
-   // Get occupied tables for date/time
+Route::post('/contact/{contact}/reply', [ContactController::class, 'storeReply']);
+// Get occupied tables for date/time
