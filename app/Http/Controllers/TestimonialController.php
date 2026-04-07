@@ -60,11 +60,11 @@ class TestimonialController extends Controller
             
             // Validate the request
             $validator = Validator::make($request->all(), [
-                'client_name' => 'required|string|max:255',
-                'client_email' => 'required|email|max:255',
-                'rating' => 'required|integer|min:1|max:5',
-                'message' => 'required|string',
-                'status' => 'required|in:pending,approved,rejected',
+                'client_name' => 'sometimes|string|max:255',
+                'client_email' => 'sometimes|email|max:255',
+                'rating' => 'sometimes|integer|min:1|max:5',
+                'message' => 'sometimes|string',
+                'status' => 'sometimes|in:pending,approved,rejected',
             ]);
             
             if ($validator->fails()) {
