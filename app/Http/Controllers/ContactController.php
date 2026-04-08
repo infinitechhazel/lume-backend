@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Contact;
 use App\Models\ContactReply;
-use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class ContactController extends Controller
 {
@@ -25,72 +25,67 @@ class ContactController extends Controller
             ]);
 
             DB::beginTransaction();
-            
-            $contact = Contact::create($validatedData);
 
-            // Store original message as first reply
-            ContactReply::create([
-                'contact_id' => $contact->id,
-                'sender_type' => 'customer',
-                'sender_name' => $contact->name,
-                'sender_email' => $contact->email,
-                'message' => $contact->message,
-                'sent_at' => $contact->created_at,
-            ]);
+            $contact = Contact::create($validatedData);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Thank you for contacting us! We\'ll get back to you within 24 hours. 연락해 주셔서 감사합니다!',
+                'message' => 'Thank you for contacting us! We\'ll get back to you within 24 hours.',
                 'data' => [
                     'id' => $contact->id,
                     'submitted_at' => $contact->created_at->toISOString(),
-                ]
+                ],
             ], 201);
 
         } catch (ValidationException $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Please check your input and try again. 입력 정보를 확인해 주세요.',
-                'errors' => $e->errors()
+                'message' => 'Please check your input and try again.',
+                'errors' => $e->errors(),
             ], 422);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Contact form submission error: ' . $e->getMessage());
-            
+            Log::error('Contact form submission error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Something went wrong. Please try again later. 오류가 발생했습니다. 나중에 다시 시도해 주세요.',
+                'message' => 'Something went wrong. Please try again later.',
             ], 500);
         }
     }
 
     public function index(Request $request): JsonResponse
     {
-        $contacts = Contact::with(['replies' => function($query) {
-            $query->orderBy('sent_at', 'asc');
-        }])
-        ->withCount('replies')
-        ->recent()
-        ->paginate(20);
+        try {
+            // Simple paginated contacts, newest first
+            $contacts = Contact::orderBy('created_at', 'desc')->paginate(20);
 
-        return response()->json([
-            'success' => true,
-            'data' => $contacts
-        ]);
+            return response()->json([
+                'success' => true,
+                'data' => $contacts,
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch contacts',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function show(Contact $contact): JsonResponse
     {
-        $contact->load(['replies' => function($query) {
+        $contact->load(['replies' => function ($query) {
             $query->orderBy('sent_at', 'asc');
         }]);
 
         return response()->json([
             'success' => true,
-            'data' => $contact
+            'data' => $contact,
         ]);
     }
 
@@ -128,20 +123,21 @@ class ContactController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Reply sent successfully',
-                'data' => $reply
+                'data' => $reply,
             ], 201);
 
         } catch (ValidationException $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $e->errors()
+                'errors' => $e->errors(),
             ], 422);
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error('Reply submission error: ' . $e->getMessage());
-            
+            Log::error('Reply submission error: '.$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to send reply',
@@ -153,35 +149,36 @@ class ContactController extends Controller
     {
         try {
             Log::info("Attempting to delete contact ID: {$contact->id}");
-            
+
             DB::beginTransaction();
-            
+
             // Delete all replies first (if cascade isn't set up)
             $contact->replies()->delete();
-            
+
             // Delete the contact
             $contact->delete();
-            
+
             DB::commit();
-            
+
             Log::info("Successfully deleted contact ID: {$contact->id}");
 
             return response()->json([
                 'success' => true,
-                'message' => 'Contact deleted successfully'
+                'message' => 'Contact deleted successfully',
             ], 200);
-            
+
         } catch (Exception $e) {
             DB::rollBack();
-            Log::error("Failed to delete contact ID: {$contact->id}, Error: " . $e->getMessage());
-            
+            Log::error("Failed to delete contact ID: {$contact->id}, Error: ".$e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete contact',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ], 500);
         }
     }
+
     public function todayCount(): JsonResponse
     {
         $count = Contact::today()->count();
@@ -190,8 +187,8 @@ class ContactController extends Controller
             'success' => true,
             'data' => [
                 'count' => $count,
-                'date' => today()->format('Y-m-d')
-            ]
+                'date' => today()->format('Y-m-d'),
+            ],
         ]);
     }
 }
