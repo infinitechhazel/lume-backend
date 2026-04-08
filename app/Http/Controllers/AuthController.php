@@ -93,64 +93,47 @@ class AuthController extends Controller
     /**
      * Verify email with token
      */
-    public function verifyEmail(Request $request): JsonResponse
+    public function verifyEmail(Request $request)
     {
         try {
             $token = $request->query('token');
 
             if (!$token) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Verification token is required.',
-                ], 400);
+                return response()->json(['message' => 'Token is required'], 400);
             }
 
             $user = User::where('verification_token', $token)->first();
 
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Invalid verification token.',
-                ], 404);
+                return response()->json(['message' => 'Invalid or expired token'], 400);
             }
 
-            // Check if token is expired
-            if ($user->verification_token_expiry && Carbon::now()->greaterThan($user->verification_token_expiry)) {
+            if ($user->verification_token_expiry && Carbon::now()->isAfter($user->verification_token_expiry)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Verification token has expired. Please request a new verification email.',
+                    'message' => 'Invalid or expired token'
                 ], 400);
             }
 
-            // Check if already verified
-            if ($user->email_verified) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Email is already verified. You can login now.',
-                ], 200);
-            }
-
-            // Mark email as verified
             $user->email_verified = true;
             $user->verification_token = null;
             $user->verification_token_expiry = null;
-            $user->email_verified_at = Carbon::now();
             $user->save();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Email verified successfully! You can now login.',
-            ], 200);
+                'message' => 'Email verified successfully'
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('Email verification error: ' . $e->getMessage());
-            
+            Log::error('Email verification error:', ['error' => $e->getMessage()]);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Email verification failed. Please try again.',
+                'message' => 'Server error during verification'
             ], 500);
         }
     }
+
 
     /**
      * Resend verification email
@@ -202,7 +185,7 @@ class AuthController extends Controller
             ], 422);
         } catch (\Exception $e) {
             Log::error('Resend verification error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to resend verification email.',
@@ -269,7 +252,7 @@ class AuthController extends Controller
             ], 422);
         } catch (\Exception $e) {
             Log::error('Login error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Login failed. Please try again.',
@@ -304,7 +287,7 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Get user error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get user information.',
@@ -327,7 +310,7 @@ class AuthController extends Controller
 
         } catch (\Exception $e) {
             Log::error('Logout error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Logout failed. Please try again.',
@@ -342,7 +325,7 @@ class AuthController extends Controller
     {
         try {
             $user = $request->user();
-            
+
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'phone' => 'nullable|string|max:20',
@@ -379,7 +362,7 @@ class AuthController extends Controller
             ], 422);
         } catch (\Exception $e) {
             Log::error('Update profile error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update profile.',

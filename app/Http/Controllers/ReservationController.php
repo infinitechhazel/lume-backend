@@ -172,7 +172,7 @@ class ReservationController extends Controller
             'reservation_fee_paid' => 'sometimes|boolean',
             'payment_method' => 'nullable|string',
             'payment_reference' => 'nullable|string|max:255',
-            'payment_screenshot' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
+            'payment_receipt' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
         ];
 
         $validated = $request->validate($rules);
@@ -218,20 +218,20 @@ class ReservationController extends Controller
             }
         }
 
-        // Handle payment screenshot upload
-        if ($request->hasFile('payment_screenshot')) {
-            $file = $request->file('payment_screenshot');
+        // Handle payment receipt upload
+        if ($request->hasFile('payment_receipt')) {
+            $file = $request->file('payment_receipt');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             
-            $uploadPath = public_path('uploads/payment_screenshots');
+            $uploadPath = public_path('uploads/payment_receipts');
             if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
             
             $file->move($uploadPath, $filename);
-            $validated['payment_screenshot'] = 'uploads/payment_screenshots/' . $filename;
+            $validated['payment_receipt'] = 'uploads/payment_receipts/' . $filename;
             
-            Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_screenshot']]);
+            Log::info('Payment receipt uploaded:', ['path' => $validated['payment_receipt']]);
         }
 
         // Add user_id
@@ -268,7 +268,7 @@ class ReservationController extends Controller
             'is_walkin' => $reservation->is_walkin,
             'status' => $reservation->status,
             'fee_paid' => $reservation->reservation_fee_paid,
-            'has_screenshot' => !empty($reservation->payment_screenshot)
+            'has_receipt' => !empty($reservation->payment_receipt)
         ]);
 
         return response()->json([
@@ -311,7 +311,7 @@ class ReservationController extends Controller
             'reservation_fee_paid' => 'sometimes|boolean',
             'payment_method' => 'nullable|string|in:gcash,security_bank',
             'payment_reference' => 'nullable|string|max:255',
-            'payment_screenshot' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
+            'payment_receipt' => 'nullable|image|mimes:jpeg,jpg,png,gif|max:5120',
         ]);
 
         // If table_number, date, or time is being updated, check availability
@@ -336,27 +336,27 @@ class ReservationController extends Controller
             }
         }
 
-        // Handle payment screenshot upload
-        if ($request->hasFile('payment_screenshot')) {
-            if ($reservation->payment_screenshot) {
-                $oldPath = public_path($reservation->payment_screenshot);
+        // Handle payment receipt upload
+        if ($request->hasFile('payment_receipt')) {
+            if ($reservation->payment_receipt) {
+                $oldPath = public_path($reservation->payment_receipt);
                 if (file_exists($oldPath)) {
                     unlink($oldPath);
                 }
             }
             
-            $file = $request->file('payment_screenshot');
+            $file = $request->file('payment_receipt');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             
-            $uploadPath = public_path('uploads/payment_screenshots');
+            $uploadPath = public_path('uploads/payment_receipts');
             if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
             
             $file->move($uploadPath, $filename);
-            $validated['payment_screenshot'] = 'uploads/payment_screenshots/' . $filename;
+            $validated['payment_receipt'] = 'uploads/payment_receipts/' . $filename;
             
-            Log::info('Payment screenshot updated:', ['path' => $validated['payment_screenshot']]);
+            Log::info('Payment receipt updated:', ['path' => $validated['payment_receipt']]);
         }
 
         // Auto-confirm if payment is marked as paid
@@ -427,8 +427,8 @@ class ReservationController extends Controller
                 ], 403);
             }
             
-            if ($reservation->payment_screenshot) {
-                $filePath = public_path($reservation->payment_screenshot);
+            if ($reservation->payment_receipt) {
+                $filePath = public_path($reservation->payment_receipt);
                 if (file_exists($filePath)) {
                     unlink($filePath);
                 }

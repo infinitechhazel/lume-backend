@@ -11,38 +11,30 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
+return new class extends Migration {
     public function up(): void
     {
         Schema::table('reservations', function (Blueprint $table) {
-            // Add user_id column (nullable for guest reservations)
-            $table->foreignId('user_id')->nullable()->after('id')->constrained('users')->onDelete('cascade');
-            
-            // Add index for faster queries
-            $table->index('user_id');
-            $table->index(['user_id', 'date']);
+            $table->foreignId('user_id')
+                ->nullable()
+                ->after('id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+
+            $table->index('user_id', 'reservations_user_id_index');
+            $table->index(['user_id', 'date'], 'reservations_user_date_index');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::table('reservations', function (Blueprint $table) {
-            // Drop indexes first
-            $table->dropIndex(['user_id', 'date']);
-            $table->dropIndex(['user_id']);
-            
-            // Drop foreign key constraint
+            $table->dropIndex('reservations_user_date_index');
+            $table->dropIndex('reservations_user_id_index');
+
             $table->dropForeign(['user_id']);
-            
-            // Drop column
             $table->dropColumn('user_id');
         });
     }
+
 };

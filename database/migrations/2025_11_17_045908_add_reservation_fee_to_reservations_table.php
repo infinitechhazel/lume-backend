@@ -13,7 +13,7 @@ return new class extends Migration
             $table->boolean('reservation_fee_paid')->default(false)->after('reservation_fee');
             $table->string('payment_method')->nullable()->after('reservation_fee_paid'); // gcash or security_bank
             $table->string('payment_reference')->nullable()->after('payment_method'); // reference number or transaction ID
-            $table->string('payment_screenshot')->nullable()->after('payment_reference'); // path to payment screenshot
+            $table->string('payment_receipt')->nullable()->after('payment_reference'); // path to payment screenshot
         });
     }
 
@@ -25,7 +25,7 @@ return new class extends Migration
                 'reservation_fee_paid', 
                 'payment_method', 
                 'payment_reference',
-                'payment_screenshot'
+                'payment_receipt'
             ]);
         });
     }
