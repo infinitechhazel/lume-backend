@@ -7,6 +7,9 @@ use Illuminate\Http\Request;
 
 class AnnouncementController extends Controller
 {
+    // Define allowed types for validation
+    private array $allowedTypes = ['news', 'promo', 'event'];
+
     /**
      * Display a listing of announcements.
      */
@@ -23,14 +26,16 @@ class AnnouncementController extends Controller
     {
         $validated = $request->validate([
             'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'isActive' => 'required|boolean',
+            'description' => 'required|string',
+            'type' => 'required|string|in:' . implode(',', $this->allowedTypes),
+            'badge' => 'nullable|string|max:50',
         ]);
 
         $announcement = Announcement::create([
             'title' => $validated['title'],
-            'content' => $validated['content'],
-            'is_active' => $validated['isActive'],
+            'description' => $validated['description'],
+            'type' => $validated['type'],
+            'badge' => $validated['badge'] ?? null,
         ]);
 
         return response()->json($announcement, 201);
@@ -47,21 +52,20 @@ class AnnouncementController extends Controller
     /**
      * Update the specified announcement in storage.
      */
-   // app/Http/Controllers/AnnouncementController.php
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'required|string',
+            'type' => 'required|string|in:' . implode(',', $this->allowedTypes),
+            'badge' => 'nullable|string|max:50',
+        ]);
 
-public function update(Request $request, $id)
-{
-    $validated = $request->validate([
-        'title' => 'required|string|max:255',
-        'content' => 'required|string',
-        'is_active' => 'boolean',
-    ]);
+        $announcement = Announcement::findOrFail($id);
+        $announcement->update($validated);
 
-    $announcement = Announcement::findOrFail($id);
-    $announcement->update($validated);
-
-    return response()->json($announcement);
-}
+        return response()->json($announcement);
+    }
 
     /**
      * Remove the specified announcement from storage.
@@ -73,13 +77,12 @@ public function update(Request $request, $id)
     }
 
     /**
-     * Get only active announcements (for public endpoint).
+     * Get only active announcements (public endpoint).
+     * If you want to filter by type or add more rules, you can extend this method.
      */
     public function getActive()
     {
-        $announcements = Announcement::where('is_active', true)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $announcements = Announcement::orderBy('created_at', 'desc')->get();
         return response()->json($announcements);
     }
 }
