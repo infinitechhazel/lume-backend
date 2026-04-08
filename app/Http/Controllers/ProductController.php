@@ -28,19 +28,9 @@ class ProductController extends Controller
                 $query->byCategory($request->category);
             }
 
-            // Filter by spicy
-            if ($request->has('is_spicy') && $request->is_spicy !== null) {
-                $query->where('is_spicy', $request->boolean('is_spicy'));
-            }
-
-            // Filter by vegetarian
-            if ($request->has('is_vegetarian') && $request->is_vegetarian !== null) {
-                $query->where('is_vegetarian', $request->boolean('is_vegetarian'));
-            }
-
-            // Filter by featured
-            if ($request->has('is_featured') && $request->is_featured !== null) {
-                $query->where('is_featured', $request->boolean('is_featured'));
+            // Filter by best seller
+            if ($request->has('best_seller') && $request->best_seller !== null) {
+                $query->where('best_seller', $request->boolean('best_seller'));
             }
 
             // Sorting
@@ -85,9 +75,7 @@ class ProductController extends Controller
                 'description' => 'required|string|max:1000',
                 'price' => 'required|numeric|min:0|max:99999.99',
                 'category' => 'required|string|max:100',
-                'is_spicy' => 'sometimes|in:true,false,1,0',
-                'is_vegetarian' => 'sometimes|in:true,false,1,0',
-                'is_featured' => 'sometimes|in:true,false,1,0',
+                'best_seller' => 'sometimes|in:true,false,1,0',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
             ]);
 
@@ -101,9 +89,7 @@ class ProductController extends Controller
             $data = $validator->validated();
 
             // Convert boolean strings to actual booleans
-            $data['is_spicy'] = $this->convertToBoolean($request->get('is_spicy', false));
-            $data['is_vegetarian'] = $this->convertToBoolean($request->get('is_vegetarian', false));
-            $data['is_featured'] = $this->convertToBoolean($request->get('is_featured', false));
+            $data['best_seller'] = $this->convertToBoolean($request->get('best_seller', false));
 
             // Handle image upload
             if ($request->hasFile('image')) {
@@ -151,9 +137,7 @@ class ProductController extends Controller
                 'description' => 'required|string|max:1000',
                 'price' => 'required|numeric|min:0|max:99999.99',
                 'category' => 'required|string|max:100',
-                'is_spicy' => 'sometimes|in:true,false,1,0',
-                'is_vegetarian' => 'sometimes|in:true,false,1,0',
-                'is_featured' => 'sometimes|in:true,false,1,0',
+                'best_seller' => 'sometimes|in:true,false,1,0',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:22048',
             ]);
 
@@ -167,9 +151,7 @@ class ProductController extends Controller
             $data = $validator->validated();
 
             // Convert boolean-like strings to actual booleans
-            $data['is_spicy'] = $this->convertToBoolean($request->input('is_spicy', false));
-            $data['is_vegetarian'] = $this->convertToBoolean($request->input('is_vegetarian', false));
-            $data['is_featured'] = $this->convertToBoolean($request->input('is_featured', false));
+            $data['best_seller'] = $this->convertToBoolean($request->input('best_seller', false));
 
             // Handle image upload from FormData
             if ($request->hasFile('image') && $request->file('image')->isValid()) {

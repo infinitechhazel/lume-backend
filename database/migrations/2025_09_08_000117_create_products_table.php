@@ -18,17 +18,15 @@ return new class extends Migration
             $table->decimal('price', 8, 2);
             $table->string('image')->nullable();
             $table->string('category');
-            $table->boolean('is_spicy')->default(false);
-            $table->boolean('is_vegetarian')->default(false);
+            $table->boolean('best_seller')->default(false);
             $table->timestamps();
             $table->softDeletes();
 
             // Indexes for better performance
             $table->index('category');
-            $table->index('is_spicy');
-            $table->index('is_vegetarian');
+            $table->index('best_seller');
             $table->index('created_at');
-            $table->index(['category', 'is_spicy', 'is_vegetarian']);
+            $table->index(['category', 'best_seller']);
         });
     }
 
