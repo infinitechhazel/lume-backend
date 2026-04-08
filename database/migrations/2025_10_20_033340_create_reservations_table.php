@@ -10,15 +10,40 @@ return new class extends Migration
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
+
+            // Foreign key to users table (nullable for guest reservations)
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+
+            // Basic reservation info
             $table->string('name');
             $table->string('email');
             $table->string('phone');
             $table->date('date');
             $table->time('time');
             $table->integer('guests');
+            $table->string('occasion')->nullable();
+            $table->string('dining_preference')->nullable();
             $table->text('special_requests')->nullable();
-            $table->enum('status', ['pending', 'confirmed', 'cancelled'])->default('pending');
+
+            // Reservation fee & payment
+            $table->decimal('reservation_fee', 10, 2)->default(2000.00);
+            $table->decimal('reservation_fee_paid', 10, 2)->default(0.00);
+            $table->string('payment_method')->nullable(); // gcash, security_bank, etc.
+            $table->string('payment_reference')->nullable(); // reference number or transaction ID
+            $table->string('payment_receipt')->nullable();
+            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
+
+            // Reservation status
+            $table->enum('reservation_status', ['pending', 'confirmed', 'cancelled', 'completed', 'noshow'])->default('pending');
+
+            // Walk-in flag
+            $table->boolean('is_walkin')->default(false);
+
             $table->timestamps();
+
+            // Indexes for faster queries
+            $table->index('user_id');
+            $table->index(['user_id', 'date']);
         });
     }
 

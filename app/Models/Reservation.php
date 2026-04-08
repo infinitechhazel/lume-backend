@@ -15,24 +15,26 @@ class Reservation extends Model
         'date',
         'time',
         'guests',
-        'table_number',
+        'occasion',
+        'dining_preference',
         'special_requests',
-        'status',
-        'is_walkin',
         'reservation_fee',
         'reservation_fee_paid',
         'payment_method',
         'payment_reference',
-        'payment_screenshot',
+        'payment_receipt',
+        'payment_status',       
+        'reservation_status',   
+        'is_walkin',
     ];
 
     protected $casts = [
         'date' => 'date',
+        'time' => 'string',
         'guests' => 'integer',
-        'table_number' => 'integer',
         'is_walkin' => 'boolean',
         'reservation_fee' => 'decimal:2',
-        'reservation_fee_paid' => 'boolean',
+        'reservation_fee_paid' => 'decimal:2',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -50,11 +52,11 @@ class Reservation extends Model
      */
     public function getPaymentScreenshotUrlAttribute(): ?string
     {
-        if (!$this->payment_screenshot) {
+        if (!$this->payment_receipt) {
             return null;
         }
-        
-        return url($this->payment_screenshot);
+
+        return url($this->payment_receipt);
     }
 
     /**
@@ -62,7 +64,7 @@ class Reservation extends Model
      */
     public function hasPaymentScreenshot(): bool
     {
-        return !empty($this->payment_screenshot) && file_exists(public_path($this->payment_screenshot));
+        return !empty($this->payment_receipt) && file_exists(public_path($this->payment_receipt));
     }
 
     /**
@@ -71,7 +73,7 @@ class Reservation extends Model
     public function scopeUpcoming($query)
     {
         return $query->where('date', '>=', now()->toDateString())
-                     ->whereIn('status', ['pending', 'confirmed'])
+                     ->whereIn('reservation_status', ['pending', 'confirmed'])
                      ->orderBy('date', 'asc')
                      ->orderBy('time', 'asc');
     }
@@ -83,8 +85,7 @@ class Reservation extends Model
     {
         return $query->where(function ($q) {
             $q->where('date', '<', now()->toDateString())
-              ->orWhere('status', 'completed')
-              ->orWhere('status', 'cancelled');
+              ->orWhereIn('reservation_status', ['completed', 'cancelled', 'noshow']);
         })->orderBy('date', 'desc')
           ->orderBy('time', 'desc');
     }
@@ -102,7 +103,7 @@ class Reservation extends Model
      */
     public function scopePaid($query)
     {
-        return $query->where('reservation_fee_paid', true);
+        return $query->where('payment_status', 'paid');
     }
 
     /**
@@ -110,7 +111,7 @@ class Reservation extends Model
      */
     public function scopeUnpaid($query)
     {
-        return $query->where('reservation_fee_paid', false)
+        return $query->where('payment_status', 'pending')
                      ->where('is_walkin', false);
     }
 
@@ -119,7 +120,7 @@ class Reservation extends Model
      */
     public function scopeWithPaymentProof($query)
     {
-        return $query->whereNotNull('payment_screenshot');
+        return $query->whereNotNull('payment_receipt');
     }
 
     /**
@@ -127,26 +128,7 @@ class Reservation extends Model
      */
     public function scopeWithoutPaymentProof($query)
     {
-        return $query->whereNull('payment_screenshot')
+        return $query->whereNull('payment_receipt')
                      ->where('is_walkin', false);
-    }
-    
-    /**
-     * Check if a table is available for a specific date and time
-     * Only pending and confirmed reservations occupy tables
-     * Completed and cancelled reservations free up the table
-     */
-    public static function isTableAvailable($tableNumber, $date, $time, $excludeReservationId = null)
-    {
-        $query = static::where('table_number', $tableNumber)
-            ->where('date', $date)
-            ->where('time', $time)
-            ->whereIn('status', ['pending', 'confirmed']); // Only these statuses occupy tables
-            
-        if ($excludeReservationId) {
-            $query->where('id', '!=', $excludeReservationId);
-        }
-        
-        return $query->count() === 0;
     }
 }
