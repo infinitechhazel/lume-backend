@@ -26,6 +26,15 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Health Check
+Route::get('/health', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Lumè Bean and Bar API is running!',
+        'timestamp' => now()->toISOString(),
+    ]);
+});
+
 // Authentication Routes
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
@@ -39,7 +48,9 @@ Route::prefix('auth')->group(function () {
         Route::put('/profile', [AuthController::class, 'updateProfile']);
     });
 });
-Route::delete('/contact/{contact}', [ContactController::class, 'destroy']);
+// email verification routes
+Route::get('/auth/verify-email', [AuthController::class, 'verifyEmail']);
+Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification']);
 
 // Contact Routes
 Route::prefix('contacts')->group(function () {
@@ -47,8 +58,8 @@ Route::prefix('contacts')->group(function () {
     Route::get('/', [ContactController::class, 'index']);
     Route::get('/today-count', [ContactController::class, 'todayCount']);
     Route::get('/{contact}', [ContactController::class, 'show']);
+    Route::delete('/{contact}', [ContactController::class, 'destroy']);
 });
-Route::get('/reservations/occupied-tables', [ReservationController::class, 'getOccupiedTables']);
 
 // Reservation Routes
 Route::prefix('reservations')->group(function () {
@@ -68,15 +79,6 @@ Route::prefix('reservations')->group(function () {
     });
 });
 
-// Health Check
-Route::get('/health', function () {
-    return response()->json([
-        'success' => true,
-        'message' => 'OPPA Restaurant API is running!',
-        'timestamp' => now()->toISOString(),
-    ]);
-});
-
 // Public Announcements
 Route::apiResource('announcements', AnnouncementController::class);
 Route::get('announcements/active', [AnnouncementController::class, 'getActive']);
@@ -91,13 +93,9 @@ Route::prefix('products')->group(function () {
 // Public Testimonials
 Route::get('/testimonials', [TestimonialController::class, 'index']);
 
-// Delivery Fee Calculation
-Route::post('/delivery-fee/calculate', [OrderController::class, 'calculateDeliveryFeeEndpoint']);
-
 // Dashboard Analytics
 Route::get('/dashboard/analytics', [DashboardController::class, 'analytics']);
 
-// Blog Posts Routes
 // Blog Posts Routes
 Route::prefix('blog-posts')->group(function () {
     Route::get('/', [BlogPostController::class, 'index']);
@@ -124,7 +122,6 @@ Route::prefix('events')->group(function () {
 // Protected Routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
     // Order Routes
-
     Route::get('/orders', [OrderController::class, 'index']);
     Route::post('/orders', [OrderController::class, 'store']);
     Route::get('/orders/{id}', [OrderController::class, 'show']);
@@ -150,12 +147,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/announcements', [AnnouncementController::class, 'store']);
 
 });
+
 Route::put('/testimonials/{testimonial}', [TestimonialController::class, 'update']);
 Route::post('/testimonials', [TestimonialController::class, 'store']);
+Route::delete('/testimonials/{testimonial}', [TestimonialController::class, 'destroy']);
+
 Route::post('/products', [ProductController::class, 'store']);
-Route::get('/auth/verify-email', [AuthController::class, 'verifyEmail']);
-Route::post('/auth/resend-verification', [AuthController::class, 'resendVerification']);
-Route::delete('testimonials/{testimonial}', [TestimonialController::class, 'destroy']);
+
 Route::middleware('auth:sanctum')->group(function () {
     // Address routes
     Route::get('/addresses', [AddressController::class, 'index']);
@@ -164,7 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
     Route::post('/addresses/{address}/set-default', [AddressController::class, 'setDefault']);
 });
+
+// Support Ticket Routes
 Route::apiResource('support-tickets', SupportTicketController::class);
 Route::put('/support-tickets/{supportTicket}', [SupportTicketController::class, 'update']);
-Route::post('/contact/{contact}/reply', [ContactController::class, 'storeReply']);
-// Get occupied tables for date/time
