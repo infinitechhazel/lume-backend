@@ -29,6 +29,7 @@ class AnnouncementController extends Controller
             'description' => 'required|string',
             'type' => 'required|string|in:' . implode(',', $this->allowedTypes),
             'badge' => 'nullable|string|max:50',
+            'is_active' => 'boolean',
         ]);
 
         $announcement = Announcement::create([
@@ -36,6 +37,7 @@ class AnnouncementController extends Controller
             'description' => $validated['description'],
             'type' => $validated['type'],
             'badge' => $validated['badge'] ?? null,
+            'is_active' => $validated['is_active'] ?? false,
         ]);
 
         return response()->json($announcement, 201);
@@ -59,6 +61,7 @@ class AnnouncementController extends Controller
             'description' => 'required|string',
             'type' => 'required|string|in:' . implode(',', $this->allowedTypes),
             'badge' => 'nullable|string|max:50',
+            'is_active' => 'boolean',
         ]);
 
         $announcement = Announcement::findOrFail($id);

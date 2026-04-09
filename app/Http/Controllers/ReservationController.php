@@ -26,7 +26,7 @@ class ReservationController extends Controller
 
         if ($user) {
             $isAdmin = (isset($user->is_admin) && $user->is_admin) ||
-                       (isset($user->role) && $user->role === 'admin');
+                (isset($user->role) && $user->role === 'admin');
 
             if ($isAdmin) {
                 // Admin sees ALL reservations including walk-ins
@@ -36,6 +36,7 @@ class ReservationController extends Controller
 
                 Log::info('✅ Admin fetching all reservations', [
                     'count' => $reservations->count(),
+                    'reservation_numbers' => $reservations->pluck('reservation_number')->toArray(),
                     'walkins_count' => $reservations->where('is_walkin', true)->count(),
                 ]);
             } else {
@@ -88,7 +89,7 @@ class ReservationController extends Controller
     {
         $user = $request->user('sanctum');
 
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
@@ -127,7 +128,7 @@ class ReservationController extends Controller
 
         $user = $request->user('sanctum');
 
-        if (! $user) {
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized. Please login to make a reservation.',
@@ -136,7 +137,7 @@ class ReservationController extends Controller
 
         // Check if user is admin
         $isAdmin = (isset($user->is_admin) && $user->is_admin) ||
-                   (isset($user->role) && $user->role === 'admin');
+            (isset($user->role) && $user->role === 'admin');
 
         Log::info('User Info:', [
             'has_user' => true,
@@ -147,7 +148,7 @@ class ReservationController extends Controller
         // For walk-ins, only admins can create them
         $isWalkin = $request->boolean('is_walkin', false);
 
-        if ($isWalkin && ! $isAdmin) {
+        if ($isWalkin && !$isAdmin) {
             Log::warning('⚠️ Non-admin trying to create walk-in reservation');
 
             return response()->json([
@@ -182,7 +183,7 @@ class ReservationController extends Controller
         Log::info('Validated Data:', $validated);
 
         // Check daily booking limit (2 per day) for regular users
-        if (! $isWalkin) {
+        if (!$isWalkin) {
             $dailyCount = Reservation::where('user_id', $user->id)
                 ->where('date', $validated['date'])
                 ->whereIn('reservation_status', ['pending', 'confirmed'])
@@ -206,15 +207,15 @@ class ReservationController extends Controller
         // Handle payment screenshot upload
         if ($request->hasFile('payment_receipt')) {
             $file = $request->file('payment_receipt');
-            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
             $uploadPath = public_path('uploads/payment_receipts');
-            if (! file_exists($uploadPath)) {
+            if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/payment_receipts/'.$filename;
+            $validated['payment_receipt'] = 'uploads/payment_receipts/' . $filename;
 
             Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
         }
@@ -224,24 +225,47 @@ class ReservationController extends Controller
         Log::info('User ID added:', ['user_id' => $user->id]);
 
         // Set default reservation fee if not provided
-        if (! isset($validated['reservation_fee'])) {
+        if (!isset($validated['reservation_fee'])) {
             $validated['reservation_fee'] = 2000.00;
         }
 
         // Set default status
-        if (! isset($validated['reservation_status'])) {
+        if (!isset($validated['reservation_status'])) {
             if ($isWalkin) {
                 $validated['reservation_status'] = 'confirmed';
                 $validated['reservation_fee_paid'] = 2000.00;
             } else {
                 $validated['reservation_status'] = 'pending';
-                if (! isset($validated['reservation_fee_paid'])) {
+                if (!isset($validated['reservation_fee_paid'])) {
                     $validated['reservation_fee_paid'] = 0.00;
                 }
             }
         }
 
         $validated['is_walkin'] = $isWalkin;
+
+        // ✅ Generate Reservation Number (RES-YYYYMMDD-0001 format)
+        $today = now()->format('Ymd');
+
+        // Get last reservation today
+        $lastReservationToday = Reservation::whereDate('created_at', now()->toDateString())
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $nextNumber = 1;
+
+        if ($lastReservationToday && $lastReservationToday->reservation_number) {
+            // Extract last number (e.g., 0005)
+            $lastNumber = (int) substr($lastReservationToday->reservation_number, -4);
+            $nextNumber = $lastNumber + 1;
+        }
+
+        // Format: RES-20260409-0001
+        $validated['reservation_number'] = 'RES-' . $today . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+
+        Log::info('Generated Reservation Number:', [
+            'reservation_number' => $validated['reservation_number']
+        ]);
 
         Log::info('Final data before create:', $validated);
 
@@ -252,7 +276,7 @@ class ReservationController extends Controller
             'is_walkin' => $reservation->is_walkin,
             'reservation_status' => $reservation->reservation_status,
             'fee_paid' => $reservation->reservation_fee_paid,
-            'has_screenshot' => ! empty($reservation->payment_receipt),
+            'has_screenshot' => !empty($reservation->payment_receipt),
         ]);
 
         return response()->json([
@@ -270,10 +294,10 @@ class ReservationController extends Controller
         $user = $request->user();
 
         $isAdmin = (isset($user->is_admin) && $user->is_admin) ||
-                   (isset($user->role) && $user->role === 'admin');
+            (isset($user->role) && $user->role === 'admin');
 
-        if (! $isAdmin) {
-            if (! $reservation->user_id || $reservation->user_id !== $user->id) {
+        if (!$isAdmin) {
+            if (!$reservation->user_id || $reservation->user_id !== $user->id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized to update this reservation',
@@ -305,7 +329,7 @@ class ReservationController extends Controller
             $date = $validated['date'] ?? $reservation->date->format('Y-m-d');
             $time = $validated['time'] ?? $reservation->time;
 
-            if (! Reservation::isTableAvailable($tableNumber, $date, $time, $reservation->id)) {
+            if (!Reservation::isTableAvailable($tableNumber, $date, $time, $reservation->id)) {
                 Log::warning('⚠️ Table not available for update', [
                     'table_number' => $tableNumber,
                     'date' => $date,
@@ -316,7 +340,7 @@ class ReservationController extends Controller
                 return response()->json([
                     'success' => false,
                     'error' => 'Table not available',
-                    'message' => 'Table #'.$tableNumber.' is already reserved for the selected date and time. Please choose another table.',
+                    'message' => 'Table #' . $tableNumber . ' is already reserved for the selected date and time. Please choose another table.',
                 ], 422);
             }
         }
@@ -331,21 +355,21 @@ class ReservationController extends Controller
             }
 
             $file = $request->file('payment_receipt');
-            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
             $uploadPath = public_path('uploads/payment_receipts');
-            if (! file_exists($uploadPath)) {
+            if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/payment_receipts/'.$filename;
+            $validated['payment_receipt'] = 'uploads/payment_receipts/' . $filename;
 
             Log::info('Payment screenshot updated:', ['path' => $validated['payment_receipt']]);
         }
 
         // Auto-confirm if payment is marked as paid
-        if (isset($validated['reservation_fee_paid']) && $validated['reservation_fee_paid'] === ['reservation_fee']) {
+        if (isset($validated['reservation_fee_paid']) && $validated['reservation_fee_paid'] >= $validated['reservation_fee']) {
             $validated['reservation_status'] = 'confirmed';
         }
 
@@ -355,7 +379,7 @@ class ReservationController extends Controller
             'success' => true,
             'data' => $reservation,
             'message' => 'Reservation updated successfully',
-        ]); 
+        ]);
     }
 
     /**
@@ -366,9 +390,9 @@ class ReservationController extends Controller
         if ($request->user()) {
             if ($reservation->user_id && $reservation->user_id !== $request->user()->id) {
                 $isAdmin = (isset($request->user()->is_admin) && $request->user()->is_admin) ||
-                           (isset($request->user()->role) && $request->user()->role === 'admin');
+                    (isset($request->user()->role) && $request->user()->role === 'admin');
 
-                if (! $isAdmin) {
+                if (!$isAdmin) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Unauthorized to view this reservation',
@@ -396,10 +420,10 @@ class ReservationController extends Controller
 
             if ($user) {
                 $isAdmin = (isset($user->is_admin) && $user->is_admin) ||
-                           (isset($user->role) && $user->role === 'admin');
+                    (isset($user->role) && $user->role === 'admin');
             }
 
-            if (! $isAdmin && (! $reservation->user_id || $reservation->user_id !== $user->id)) {
+            if (!$isAdmin && (!$reservation->user_id || $reservation->user_id !== $user->id)) {
                 return response()->json([
                     'success' => false,
                     'error' => 'Unauthorized',
@@ -427,7 +451,7 @@ class ReservationController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Reservation not found',
-                'message' => 'The reservation with ID '.$id.' does not exist.',
+                'message' => 'The reservation with ID ' . $id . ' does not exist.',
             ], 404);
 
         } catch (\Exception $e) {

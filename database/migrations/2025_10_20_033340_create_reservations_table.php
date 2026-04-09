@@ -4,17 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-
-            // Foreign key to users table (nullable for guest reservations)
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
-
-            // Basic reservation info
+            $table->string('reservation_number')->unique();
             $table->string('name');
             $table->string('email');
             $table->string('phone');

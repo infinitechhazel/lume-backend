@@ -9,6 +9,7 @@ class Reservation extends Model
 {
     protected $fillable = [
         'user_id',
+        'reservation_number',
         'name',
         'email',
         'phone',
