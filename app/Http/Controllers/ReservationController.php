@@ -209,13 +209,13 @@ class ReservationController extends Controller
             $file = $request->file('payment_receipt');
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
-            $uploadPath = public_path('uploads/payment_receipts');
-            if (!file_exists($uploadPath)) {
+            $uploadPath = public_path('uploads/reservation_receipts');
+            if (! file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/payment_receipts/' . $filename;
+            $validated['payment_receipt'] = 'uploads/reservation_receipts/'.$filename;
 
             Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
         }

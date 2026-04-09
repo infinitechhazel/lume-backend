@@ -337,7 +337,7 @@ class OrderController extends Controller
                         Log::info('[v0] Decoded image size: '.strlen($imageData).' bytes');
 
                         $filename = 'receipt_'.time().'_'.$user->id.'.png';
-                        $publicDir = public_path('receipts');
+                        $publicDir = public_path('uploads/order_receipts');
 
                         // Create directory if it doesn't exist
                         if (! file_exists($publicDir)) {
@@ -347,7 +347,7 @@ class OrderController extends Controller
                         // Save file directly to public folder
                         $filePath = $publicDir.'/'.$filename;
                         if (file_put_contents($filePath, $imageData)) {
-                            $receiptUrl = 'receipts/'.$filename;
+                            $receiptUrl = 'order_receipts/'.$filename;
                             Log::info('[v0] Receipt saved to public path: '.$receiptUrl);
                         } else {
                             Log::error('[v0] Failed to write receipt file to public directory');
