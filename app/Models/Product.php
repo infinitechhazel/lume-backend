@@ -19,6 +19,7 @@ class Product extends Model
         'is_spicy',
         'is_vegetarian',
         'is_featured',
+        'best_seller',
     ];
 
     protected $casts = [
@@ -26,13 +27,14 @@ class Product extends Model
         'is_spicy' => 'boolean',
         'is_vegetarian' => 'boolean',
         'is_featured' => 'boolean',
+        'best_seller' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',
     ];
 
     protected $appends = [
-        'image_url'
+        'image_url',
     ];
 
     /**
@@ -41,8 +43,9 @@ class Product extends Model
     public function getImageUrlAttribute()
     {
         if ($this->image) {
-            return asset('images/products/' . $this->image);
+            return asset('images/products/'.$this->image);
         }
+
         return asset('images/products/placeholder.jpg');
     }
 
@@ -85,7 +88,7 @@ class Product extends Model
     {
         return $query->where(function ($q) use ($search) {
             $q->where('name', 'like', "%{$search}%")
-              ->orWhere('description', 'like', "%{$search}%");
+                ->orWhere('description', 'like', "%{$search}%");
         });
     }
 }

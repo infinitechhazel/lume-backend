@@ -68,47 +68,47 @@ class ProductController extends Controller
      * Store a newly created product
      */
     public function store(Request $request): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'name' => 'required|string|max:255',
-                'description' => 'required|string|max:1000',
-                'price' => 'required|numeric|min:0|max:99999.99',
-                'category' => 'required|string|max:100',
-                'best_seller' => 'sometimes|in:true,false,1,0',
-                'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
-            ]);
+{
+    try {
 
-            if ($validator->fails()) {
-                return response()->json([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors(),
-                ], 422);
-            }
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'required|string|max:1000',
+            'price' => 'required|numeric|min:0|max:99999.99',
+            'category' => 'required|string|max:100',
+            'best_seller' => 'sometimes|boolean',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+        ]);
 
-            $data = $validator->validated();
-
-            // Convert boolean strings to actual booleans
-            $data['best_seller'] = $this->convertToBoolean($request->get('best_seller', false));
-
-            // Handle image upload
-            if ($request->hasFile('image')) {
-                $data['image'] = $this->handleImageUpload($request->file('image'));
-            }
-
-            $product = Product::create($data);
-
+        if ($validator->fails()) {
             return response()->json([
-                'message' => 'Product created successfully',
-                'data' => $product->load([]),
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to create product',
-                'error' => $e->getMessage(),
-            ], 500);
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
+
+        $data = $validator->validated();
+
+       
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $this->handleImageUpload($request->file('image'));
+        }
+
+        $product = Product::create($data);
+
+        return response()->json([
+            'message' => 'Product created successfully',
+            'data' => $product,
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'message' => 'Failed to create product',
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
     /**
      * Display the specified product
