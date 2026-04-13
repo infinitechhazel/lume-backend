@@ -166,6 +166,7 @@ class ReservationController extends Controller
             'date' => 'required|date|after_or_equal:today',
             'time' => 'required|date_format:H:i',
             'guests' => 'required|integer|min:1|max:20',
+            'package' => 'nullable|string|max:255',
             'occasion' => 'nullable|string|max:255',
             'dining_preference' => 'nullable|string|max:255',
             'special_requests' => 'nullable|string|max:1000',
@@ -210,12 +211,12 @@ class ReservationController extends Controller
             $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
 
             $uploadPath = public_path('uploads/reservation_receipts');
-            if (! file_exists($uploadPath)) {
+            if (!file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/reservation_receipts/'.$filename;
+            $validated['payment_receipt'] = 'uploads/reservation_receipts/' . $filename;
 
             Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
         }
@@ -312,6 +313,7 @@ class ReservationController extends Controller
             'date' => 'sometimes|date|after_or_equal:today',
             'time' => 'sometimes|date_format:H:i',
             'guests' => 'sometimes|integer|min:1|max:20',
+            'package' => 'nullable|string|max:255',
             'occasion' => 'nullable|string|max:255',
             'dining_preference' => 'nullable|string|max:255',
             'special_requests' => 'nullable|string|max:1000',

@@ -17,6 +17,7 @@ return new class extends Migration {
             $table->date('date');
             $table->time('time');
             $table->integer('guests');
+            $table->string('package')->nullable();
             $table->string('occasion')->nullable();
             $table->string('dining_preference')->nullable();
             $table->text('special_requests')->nullable();
