@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Setting;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -374,7 +375,21 @@ class OrderController extends Controller
 
             Log::info('Calculated total amount: '.$totalAmount);
 
-            $deliveryFee = (float) $request->delivery_fee;
+            $settings = Setting::first();
+
+            // Auto-create settings if missing (optional)
+            if (! $settings) {
+                $settings = Setting::create([
+                    'restaurant_name' => '',
+                    'email' => '',
+                    'phone' => '',
+                    'address' => '',
+                    'delivery_fee' => 0,
+                    'maintenance_mode' => false,
+                ]);
+            }
+
+            $deliveryFee = (float) ($settings->delivery_fee ?? 0);
             $totalAmount += $deliveryFee;
 
             $orderNumber = 'ORD-'.time().rand(100, 999);
