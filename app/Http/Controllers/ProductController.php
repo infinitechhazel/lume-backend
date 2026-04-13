@@ -74,6 +74,7 @@ class ProductController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'description' => 'required|string|max:1000',
+            'ingredients' => 'required|string|max:1000',
             'price' => 'required|numeric|min:0|max:99999.99',
             'category' => 'required|string|max:100',
             'best_seller' => 'sometimes|boolean',
@@ -135,6 +136,7 @@ class ProductController extends Controller
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
                 'description' => 'required|string|max:1000',
+                'ingredients' => 'required|string|max:1000',
                 'price' => 'required|numeric|min:0|max:99999.99',
                 'category' => 'required|string|max:100',
                 'best_seller' => 'sometimes|in:true,false,1,0',
