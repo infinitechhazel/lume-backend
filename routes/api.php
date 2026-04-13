@@ -8,8 +8,10 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SupportTicketController;
 use App\Http\Controllers\TestimonialController;
 use App\Http\Controllers\UserController;
@@ -161,6 +163,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/addresses/{address}', [AddressController::class, 'update']);
     Route::delete('/addresses/{address}', [AddressController::class, 'destroy']);
     Route::post('/addresses/{address}/set-default', [AddressController::class, 'setDefault']);
+});
+
+// Settings Routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/settings', [SettingController::class, 'show']);
+    Route::put('/settings', [SettingController::class, 'update']);
+});
+
+// Payment Methods Routes
+Route::get('/payment-methods', [PaymentMethodController::class, 'index']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/payment-methods', [PaymentMethodController::class, 'store']);
+    Route::put('/payment-methods/{id}', [PaymentMethodController::class, 'update']);
+    Route::delete('/payment-methods/{id}', [PaymentMethodController::class, 'destroy']);
 });
 
 // Support Ticket Routes
