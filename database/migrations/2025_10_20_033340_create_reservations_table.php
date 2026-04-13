@@ -12,8 +12,8 @@ return new class extends Migration {
             $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
             $table->string('reservation_number')->unique();
             $table->string('name');
-            $table->string('email');
-            $table->string('phone');
+            $table->string('email')->nullable(); // null if walk-in
+            $table->string('phone')->nullable(); // null if walk-in
             $table->date('date');
             $table->time('time');
             $table->integer('guests');
