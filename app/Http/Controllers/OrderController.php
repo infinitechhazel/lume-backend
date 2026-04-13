@@ -70,6 +70,7 @@ class OrderController extends Controller
                     'delivery_address' => $order->delivery_address ?? '',
                     'delivery_city' => $order->delivery_city ?? '',
                     'delivery_zip_code' => $order->delivery_zip_code ?? '',
+                    'delivery_fee' => is_numeric($order->delivery_fee) ? (float) $order->delivery_fee : 0.00,
                     'payment_method' => $order->payment_method ?? 'cash',
                     'payment_status' => $order->payment_status ?? 'pending',
                     'order_status' => $order->order_status ?? 'pending',
@@ -348,7 +349,7 @@ class OrderController extends Controller
                         // Save file directly to public folder
                         $filePath = $publicDir.'/'.$filename;
                         if (file_put_contents($filePath, $imageData)) {
-                            $receiptUrl = 'order_receipts/'.$filename;
+                            $receiptUrl = '/uploads/order_receipts/'.$filename;
                             Log::info('[v0] Receipt saved to public path: '.$receiptUrl);
                         } else {
                             Log::error('[v0] Failed to write receipt file to public directory');
