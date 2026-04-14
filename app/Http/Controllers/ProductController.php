@@ -73,12 +73,13 @@ class ProductController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'description' => 'required|string|max:1000',
-            'ingredients' => 'required|string|max:1000',
+            'description' => 'nullable|string|max:1000',
+            'ingredients' => 'nullable|string|max:1000',
             'price' => 'required|numeric|min:0|max:99999.99',
             'category' => 'required|string|max:100',
             'best_seller' => 'sometimes|boolean',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:20480',
+            'set' => 'sometimes|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -135,12 +136,13 @@ class ProductController extends Controller
             // Laravel automatically handles FormData requests (multipart/form-data)
             $validator = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'description' => 'required|string|max:1000',
-                'ingredients' => 'required|string|max:1000',
+                'description' => 'nullable|string|max:1000',
+                'ingredients' => 'nullable|string|max:1000',
                 'price' => 'required|numeric|min:0|max:99999.99',
                 'category' => 'required|string|max:100',
                 'best_seller' => 'sometimes|in:true,false,1,0',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:22048',
+                'set' => 'sometimes|boolean',
             ]);
 
             if ($validator->fails()) {
