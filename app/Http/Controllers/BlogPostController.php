@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\BlogPost;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class BlogPostController extends Controller
@@ -19,9 +18,16 @@ class BlogPostController extends Controller
     /**
      * Get all blog posts
      */
-    public function index()
+    public function index(Request $request)
     {
-        return BlogPost::latest()->get();
+        $query = BlogPost::query();
+
+        // only filter if draft query exists
+        if ($request->has('draft')) {
+            $query->where('draft', $request->draft);
+        }
+
+        return $query->latest()->get();
     }
 
     /**
@@ -38,12 +44,6 @@ class BlogPostController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::info('BLOG STORE START', [
-                'all_request_keys' => $request->all(),
-                'has_image' => $request->hasFile('image'),
-                'has_thumbnail' => $request->hasFile('thumbnail'),
-                'files' => array_keys($request->allFiles()),
-            ]);
 
             $validated = $request->validate([
                 'title' => 'required|string',
@@ -56,28 +56,36 @@ class BlogPostController extends Controller
                 'draft' => 'nullable|boolean',
             ]);
 
-            // FOLDERS
             $imagePath = public_path('images/blog');
-            $thumbPath = public_path('thumbnails/blog');
+            $thumbPath = public_path('images/blog/thumbnails');
 
             $this->ensureDirectoryExists($imagePath);
             $this->ensureDirectoryExists($thumbPath);
 
-            Log::info('DIRECTORIES CHECKED', [
-                'image_path' => $imagePath,
-                'thumb_path' => $thumbPath,
-                'image_exists' => is_dir($imagePath),
-                'thumb_exists' => is_dir($thumbPath),
-            ]);
+            $hasVideo = ! empty($validated['video_url']);
+            $hasImageFile = $request->hasFile('image');
 
-            // IMAGE
-            if ($request->hasFile('image')) {
+            // CASE 1: VIDEO POST (video + thumbnail allowed)
+            if ($hasVideo) {
 
-                Log::info('PROCESSING IMAGE', [
-                    'original_name' => $request->file('image')->getClientOriginalName(),
-                    'size' => $request->file('image')->getSize(),
-                    'mime' => $request->file('image')->getMimeType(),
-                ]);
+                // IMAGE MUST BE REMOVED
+                if ($request->hasFile('image')) {
+                    $validated['image'] = null;
+                }
+
+            }
+
+            // CASE 2: IMAGE POST (image only)
+            if ($hasImageFile) {
+                $validated['video_url'] = null;
+                $request->files->remove('thumbnail');
+                $validated['thumbnail'] = null;
+            }
+
+            /*
+            IMAGE UPLOAD
+            */
+            if ($request->hasFile('image') && empty($validated['video_url'])) {
 
                 $file = $request->file('image');
                 $filename = time().'_'.$file->getClientOriginalName();
@@ -85,48 +93,26 @@ class BlogPostController extends Controller
                 $file->move($imagePath, $filename);
 
                 $validated['image'] = '/images/blog/'.$filename;
-
-                Log::info('IMAGE SAVED', [
-                    'image' => $validated['image'],
-                ]);
             }
 
-            // THUMBNAIL
-            if ($request->hasFile('thumbnail')) {
-
-                Log::info('PROCESSING THUMBNAIL', [
-                    'original_name' => $request->file('thumbnail')->getClientOriginalName(),
-                    'size' => $request->file('thumbnail')->getSize(),
-                    'mime' => $request->file('thumbnail')->getMimeType(),
-                ]);
+            /*
+            THUMBNAIL UPLOAD (ONLY FOR VIDEO POST)
+            */
+            if ($request->hasFile('thumbnail') && ! empty($validated['video_url'])) {
 
                 $thumb = $request->file('thumbnail');
                 $thumbName = time().'_thumb_'.$thumb->getClientOriginalName();
 
                 $thumb->move($thumbPath, $thumbName);
 
-                $validated['thumbnail'] = '/thumbnails/blog/'.$thumbName;
-
-                Log::info('THUMBNAIL SAVED', [
-                    'thumbnail' => $validated['thumbnail'],
-                ]);
+                $validated['thumbnail'] = '/images/blog/thumbnails/'.$thumbName;
             }
 
-            Log::info('FINAL DATA BEFORE CREATE', $validated);
-
             $blogPost = BlogPost::create($validated);
-
-            Log::info('BLOG POST CREATED SUCCESSFULLY', [
-                'id' => $blogPost->id,
-            ]);
 
             return response()->json($blogPost, 201);
 
         } catch (ValidationException $e) {
-
-            Log::error('VALIDATION FAILED', [
-                'errors' => $e->errors(),
-            ]);
 
             return response()->json([
                 'error' => 'Validation failed',
@@ -134,12 +120,6 @@ class BlogPostController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-
-            Log::error('STORE FAILED', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
             return response()->json([
                 'error' => 'Failed to create blog post',
                 'message' => $e->getMessage(),
@@ -269,9 +249,7 @@ class BlogPostController extends Controller
                 ], 422);
             }
 
-            // =========================
             // CHUNK STORAGE
-            // =========================
             $chunkDir = storage_path("app/video_chunk/{$uploadId}");
 
             if (! is_dir($chunkDir)) {
@@ -305,9 +283,7 @@ class BlogPostController extends Controller
             fclose($input);
             fclose($output);
 
-            // =========================
             // CHECK IF ALL CHUNKS ARE READY
-            // =========================
             $missing = [];
 
             for ($i = 0; $i < $totalChunks; $i++) {
@@ -324,9 +300,7 @@ class BlogPostController extends Controller
                 ]);
             }
 
-            // =========================
             // FINAL OUTPUT FILE
-            // =========================
             $finalFolder = public_path('videos/blog');
 
             if (! is_dir($finalFolder)) {
@@ -345,9 +319,7 @@ class BlogPostController extends Controller
                 ], 500);
             }
 
-            // =========================
             // MERGE CHUNKS
-            // =========================
             for ($i = 0; $i < $totalChunks; $i++) {
                 $chunkPath = $chunkDir."/chunk_{$i}";
 
@@ -368,9 +340,7 @@ class BlogPostController extends Controller
 
             fclose($output);
 
-            // =========================
             // CLEANUP
-            // =========================
             foreach (glob($chunkDir.'/*') as $filePath) {
                 @unlink($filePath);
             }
