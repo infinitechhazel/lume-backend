@@ -167,8 +167,8 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Settings Routes
+Route::get('/settings', [SettingController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/settings', [SettingController::class, 'show']);
     Route::put('/settings', [SettingController::class, 'update']);
 });
 
