@@ -106,6 +106,7 @@ Route::prefix('blog-posts')->group(function () {
     Route::post('/{blogPost}', [BlogPostController::class, 'update']); // For FormData with _method
     Route::put('/{blogPost}', [BlogPostController::class, 'update']);
     Route::delete('/{blogPost}', [BlogPostController::class, 'destroy']);
+    Route::post('/video/upload-chunk', [BlogPostController::class, 'uploadVideoChunk']);
 });
 
 // Event Routes (Public: index, show, store | Protected: update, destroy)
