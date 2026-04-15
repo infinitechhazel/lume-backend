@@ -148,8 +148,6 @@ class ContactController extends Controller
     public function destroy(Contact $contact): JsonResponse
     {
         try {
-            Log::info("Attempting to delete contact ID: {$contact->id}");
-
             DB::beginTransaction();
 
             // Delete all replies first (if cascade isn't set up)
@@ -159,8 +157,6 @@ class ContactController extends Controller
             $contact->delete();
 
             DB::commit();
-
-            Log::info("Successfully deleted contact ID: {$contact->id}");
 
             return response()->json([
                 'success' => true,
