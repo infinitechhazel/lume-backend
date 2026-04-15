@@ -65,8 +65,17 @@ class ReservationController extends Controller
 
         if ($request->hasFile('payment_receipt')) {
             $file = $request->file('payment_receipt');
-            $path = $file->store('receipts', 'public');
-            $validated['payment_receipt'] = 'storage/' . $path;
+            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
+
+            $uploadPath = public_path('uploads/reservation_receipts');
+            if (! file_exists($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            $file->move($uploadPath, $filename);
+            $validated['payment_receipt'] = 'uploads/reservation_receipts/'.$filename;
+
+            Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
         }
 
         $packagePrices = [
@@ -204,7 +213,138 @@ class ReservationController extends Controller
                 'message' => 'Deleted successfully',
             ]);
         } catch (ModelNotFoundException $e) {
-            return response()->json(['success' => false, 'message' => 'Not found'], 404);
+            return response()->json([
+                'success' => false,
+                'error' => 'Reservation not found',
+                'message' => 'The reservation with ID '.$id.' does not exist.',
+            ], 404);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error deleting reservation:', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to delete reservation',
+                'message' => $e->getMessage(),
+            ], 500);
         }
+    }
+
+    /**
+     * Get user's upcoming reservations.
+     */
+    public function upcoming(Request $request)
+    {
+        $reservations = Reservation::where('user_id', $request->user()->id)
+            ->upcoming()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reservations,
+            'count' => $reservations->count(),
+        ]);
+    }
+
+    /**
+     * Get user's past reservations.
+     */
+    public function past(Request $request)
+    {
+        $reservations = Reservation::where('user_id', $request->user()->id)
+            ->past()
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reservations,
+            'count' => $reservations->count(),
+        ]);
+    }
+
+    /**
+     * Get occupied tables for a specific date and time.
+     */
+    public function getOccupiedTables(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'date' => 'required|date',
+                'time' => 'required|date_format:H:i',
+            ]);
+
+            Log::info('=== Get Occupied Tables Request ===', [
+                'date' => $validated['date'],
+                'time' => $validated['time'],
+            ]);
+
+            $occupiedTables = Reservation::where('date', $validated['date'])
+                ->where('time', $validated['time'])
+                ->whereIn('reservation_status', ['pending', 'confirmed'])
+                ->whereNotNull('table_number')
+                ->pluck('table_number')
+                ->unique()
+                ->values()
+                ->toArray();
+
+            Log::info('✅ Occupied tables retrieved:', [
+                'tables' => $occupiedTables,
+                'count' => count($occupiedTables),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'occupied_tables' => $occupiedTables,
+                'date' => $validated['date'],
+                'time' => $validated['time'],
+                'count' => count($occupiedTables),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('❌ Error getting occupied tables:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Failed to get occupied tables',
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getBookedSlots(Request $request)
+    {
+        $date = $request->query('date');
+
+        $query = Reservation::whereIn('reservation_status', ['pending', 'confirmed']);
+
+        if (! empty($date)) {
+            $query->whereDate('date', $date);
+        }
+
+        $booked = $query
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
+            ->get(['id', 'date', 'time']);
+
+        $bookedSlots = $booked->map(function ($res) {
+            return [
+                'id' => $res->id,
+                'date' => $res->date,
+                'start' => substr($res->time, 0, 5),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'date' => $date,
+            'booked_slots' => $bookedSlots,
+            'count' => $bookedSlots->count(),
+        ]);
     }
 }

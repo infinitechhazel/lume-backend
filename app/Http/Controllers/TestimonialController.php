@@ -52,11 +52,6 @@ class TestimonialController extends Controller
     public function update(Request $request, Testimonial $testimonial)
     {
         try {
-            // Log the incoming request for debugging
-            Log::info('Updating testimonial', [
-                'id' => $testimonial->id,
-                'request_data' => $request->all()
-            ]);
             
             // Validate the request
             $validator = Validator::make($request->all(), [
@@ -82,11 +77,6 @@ class TestimonialController extends Controller
             
             // Refresh the model to get the latest data
             $testimonial->refresh();
-            
-            Log::info('Testimonial updated successfully', [
-                'id' => $testimonial->id,
-                'updated_data' => $testimonial->toArray()
-            ]);
             
             return response()->json($testimonial, 200);
             

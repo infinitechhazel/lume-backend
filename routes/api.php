@@ -69,6 +69,7 @@ Route::prefix('reservations')->group(function () {
     Route::get('/occupied', [ReservationController::class, 'getOccupiedTables']);
     Route::post('/', [ReservationController::class, 'store']);
     Route::get('/', [ReservationController::class, 'index']);
+    Route::get('/booked-slots', [ReservationController::class, 'getBookedSlots']);
 
     // Protected routes (require authentication)
     Route::middleware('auth:sanctum')->group(function () {
@@ -106,6 +107,7 @@ Route::prefix('blog-posts')->group(function () {
     Route::post('/{blogPost}', [BlogPostController::class, 'update']); // For FormData with _method
     Route::put('/{blogPost}', [BlogPostController::class, 'update']);
     Route::delete('/{blogPost}', [BlogPostController::class, 'destroy']);
+    Route::post('/video/upload-chunk', [BlogPostController::class, 'uploadVideoChunk']);
 });
 
 // Event Routes (Public: index, show, store | Protected: update, destroy)
@@ -166,8 +168,8 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Settings Routes
+Route::get('/settings', [SettingController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/settings', [SettingController::class, 'show']);
     Route::put('/settings', [SettingController::class, 'update']);
 });
 
