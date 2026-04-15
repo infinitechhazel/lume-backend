@@ -69,6 +69,7 @@ Route::prefix('reservations')->group(function () {
     Route::get('/occupied', [ReservationController::class, 'getOccupiedTables']);
     Route::post('/', [ReservationController::class, 'store']);
     Route::get('/', [ReservationController::class, 'index']);
+    Route::get('/booked-slots', [ReservationController::class, 'getBookedSlots']);
 
     // Protected routes (require authentication)
     Route::middleware('auth:sanctum')->group(function () {

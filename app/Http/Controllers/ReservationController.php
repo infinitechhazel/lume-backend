@@ -211,12 +211,12 @@ class ReservationController extends Controller
             $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
 
             $uploadPath = public_path('uploads/reservation_receipts');
-            if (!file_exists($uploadPath)) {
+            if (! file_exists($uploadPath)) {
                 mkdir($uploadPath, 0755, true);
             }
 
             $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/reservation_receipts/' . $filename;
+            $validated['payment_receipt'] = 'uploads/reservation_receipts/'.$filename;
 
             Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
         }
@@ -455,7 +455,7 @@ class ReservationController extends Controller
                 'success' => false,
                 'error' => 'Reservation not found',
                 'message' => 'The reservation with ID '.$id.' does not exist.',
-                ], 404);
+            ], 404);
 
         } catch (\Exception $e) {
             Log::error('❌ Error deleting reservation:', [
@@ -553,5 +553,36 @@ class ReservationController extends Controller
                 'message' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function getBookedSlots(Request $request)
+    {
+        $date = $request->query('date');
+
+        $query = Reservation::whereIn('reservation_status', ['pending', 'confirmed']);
+
+        if (! empty($date)) {
+            $query->whereDate('date', $date);
+        }
+
+        $booked = $query
+            ->orderBy('date', 'asc')
+            ->orderBy('time', 'asc')
+            ->get(['id', 'date', 'time']);
+
+        $bookedSlots = $booked->map(function ($res) {
+            return [
+                'id' => $res->id,
+                'date' => $res->date,
+                'start' => substr($res->time, 0, 5),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'date' => $date,
+            'booked_slots' => $bookedSlots,
+            'count' => $bookedSlots->count(),
+        ]);
     }
 }
