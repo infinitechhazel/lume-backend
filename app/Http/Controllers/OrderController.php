@@ -282,9 +282,6 @@ class OrderController extends Controller
                 ], 401);
             }
 
-            Log::info('Creating order for user: '.$user->id);
-            Log::info('Request data: '.json_encode($request->all()));
-
             $validator = Validator::make($request->all(), [
                 'items' => 'required|array|min:1',
                 'items.*.name' => 'required|string|max:255',
@@ -321,11 +318,9 @@ class OrderController extends Controller
             $receiptUrl = null;
             if ($request->receipt_file) {
                 try {
-                    Log::info('[v0] Processing receipt file, length: '.strlen($request->receipt_file));
 
                     // Check if it's a base64 image
                     if (preg_match('/^data:image\/(\w+);base64,/', $request->receipt_file, $matches)) {
-                        Log::info('[v0] Base64 image detected, format: '.$matches[1]);
 
                         // Extract and decode base64
                         $imageData = preg_replace('/^data:image\/\w+;base64,/', '', $request->receipt_file);
@@ -335,8 +330,6 @@ class OrderController extends Controller
                             Log::error('[v0] Failed to decode base64 image');
                             throw new \Exception('Invalid base64 image data');
                         }
-
-                        Log::info('[v0] Decoded image size: '.strlen($imageData).' bytes');
 
                         $filename = 'receipt_'.time().'_'.$user->id.'.png';
                         $publicDir = public_path('uploads/order_receipts');
@@ -350,7 +343,6 @@ class OrderController extends Controller
                         $filePath = $publicDir.'/'.$filename;
                         if (file_put_contents($filePath, $imageData)) {
                             $receiptUrl = '/uploads/order_receipts/'.$filename;
-                            Log::info('[v0] Receipt saved to public path: '.$receiptUrl);
                         } else {
                             Log::error('[v0] Failed to write receipt file to public directory');
                             throw new \Exception('Failed to save receipt file');
@@ -358,7 +350,6 @@ class OrderController extends Controller
                     } elseif (filter_var($request->receipt_file, FILTER_VALIDATE_URL)) {
                         // If it's already a URL, use it as-is
                         $receiptUrl = $request->receipt_file;
-                        Log::info('[v0] Using provided URL as receipt: '.$receiptUrl);
                     } else {
                         Log::warning('[v0] Receipt data is neither valid base64 nor URL');
                     }
@@ -373,8 +364,6 @@ class OrderController extends Controller
             foreach ($request->items as $item) {
                 $totalAmount += (float) $item['price'] * (int) $item['quantity'];
             }
-
-            Log::info('Calculated total amount: '.$totalAmount);
 
             $settings = Setting::first();
 
@@ -395,9 +384,6 @@ class OrderController extends Controller
 
             $orderNumber = 'ORD-'.time().rand(100, 999);
 
-            Log::info('Creating order with number: '.$orderNumber);
-            Log::info('[v0] Final receipt URL: '.($receiptUrl ?? 'null'));
-
             $order = Order::create([
                 'user_id' => $user->id,
                 'order_number' => $orderNumber,
@@ -416,8 +402,6 @@ class OrderController extends Controller
                 'order_status' => 'pending',
             ]);
 
-            Log::info('Order created with ID: '.$order->id);
-
             // Handle items
             foreach ($request->items as $item) {
                 OrderItem::create([
@@ -433,8 +417,6 @@ class OrderController extends Controller
                     'subtotal' => (float) $item['price'] * (int) $item['quantity'],
                 ]);
             }
-
-            Log::info('Order items created successfully');
 
             DB::commit();
 
@@ -460,8 +442,6 @@ class OrderController extends Controller
                 'created_at' => $order->created_at,
                 'updated_at' => $order->updated_at,
             ];
-
-            Log::info('Order creation successful');
 
             return response()->json([
                 'success' => true,
@@ -549,8 +529,6 @@ class OrderController extends Controller
             // Generate public URL
             $fileUrl = url('uploads/receipts/'.$filename);
 
-            Log::info('Receipt uploaded successfully: '.$fileUrl);
-
             return response()->json([
                 'success' => true,
                 'message' => 'Receipt uploaded successfully',
@@ -636,16 +614,12 @@ class OrderController extends Controller
                 ], 403);
             }
 
-            // Log the deletion attempt
-            Log::info("Deleting order #{$order->order_number} (ID: {$id}) by user {$user->id}");
-
             // Delete receipt file if exists
             if ($order->receipt_file && str_contains($order->receipt_file, 'uploads/receipts/')) {
                 $filename = basename($order->receipt_file);
                 $filePath = public_path('uploads/receipts/'.$filename);
                 if (file_exists($filePath)) {
                     unlink($filePath);
-                    Log::info('Deleted receipt file: '.$filePath);
                 }
             }
 
@@ -654,8 +628,6 @@ class OrderController extends Controller
 
             // Delete the order
             $order->delete();
-
-            Log::info("Successfully deleted order #{$order->order_number}");
 
             return response()->json([
                 'success' => true,
@@ -724,15 +696,6 @@ class OrderController extends Controller
             $previousStatus = $order->order_status;
             $order->order_status = 'cancelled';
             $order->save();
-
-            // Optional: Log the cancellation
-            Log::info('Order cancelled by user', [
-                'order_id' => $order->id,
-                'order_number' => $order->order_number,
-                'user_id' => $user->id,
-                'previous_status' => $previousStatus,
-                'cancelled_at' => now(),
-            ]);
 
             return response()->json([
                 'success' => true,
