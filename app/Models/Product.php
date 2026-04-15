@@ -13,20 +13,16 @@ class Product extends Model
     protected $fillable = [
         'name',
         'description',
+        'ingredients',
         'price',
         'image',
         'category',
-        'is_spicy',
-        'is_vegetarian',
-        'is_featured',
         'best_seller',
+        'set',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
-        'is_spicy' => 'boolean',
-        'is_vegetarian' => 'boolean',
-        'is_featured' => 'boolean',
         'best_seller' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

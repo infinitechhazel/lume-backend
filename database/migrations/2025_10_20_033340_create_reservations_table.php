@@ -9,38 +9,68 @@ return new class extends Migration {
     {
         Schema::create('reservations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('cascade');
+
+            // User relation (nullable for walk-ins)
+            $table->foreignId('user_id')
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
+
             $table->string('reservation_number')->unique();
+
+            // Guest info
             $table->string('name');
-            $table->string('email')->nullable(); // null if walk-in
-            $table->string('phone')->nullable(); // null if walk-in
+            $table->string('email')->nullable();
+            $table->string('phone')->nullable();
+
+            // Reservation details
             $table->date('date');
             $table->time('time');
-            $table->integer('guests');
+            $table->unsignedInteger('guests');
+
             $table->string('package')->nullable();
             $table->string('occasion')->nullable();
             $table->string('dining_preference')->nullable();
             $table->text('special_requests')->nullable();
 
-            // Reservation fee & payment
-            $table->decimal('reservation_fee', 10, 2)->default(2000.00);
-            $table->decimal('reservation_fee_paid', 10, 2)->default(0.00);
-            $table->string('payment_method')->nullable(); // gcash, security_bank, etc.
-            $table->string('payment_reference')->nullable(); // reference number or transaction ID
-            $table->string('payment_receipt')->nullable();
-            $table->enum('payment_status', ['pending', 'paid', 'failed'])->default('pending');
+            // Pricing
+            $table->decimal('reservation_fee', 12, 2)->default(0);
+            $table->decimal('down_payment', 12, 2)->default(0);
+            $table->decimal('remaining_balance', 12, 2)->default(0);
+            $table->decimal('service_charge', 12, 2)->default(0); 
+            $table->decimal('total_fee', 12, 2)->default(0);
+
+            // Payment
+            $table->string('payment_method')->nullable();
+            $table->string('payment_reference')->nullable();
+            $table->string('payment_receipt')->nullable(); // stored file path
+            $table->enum('payment_status', [
+                'pending',
+                'partially_paid',
+                'paid',
+                'failed',
+                'cancelled'
+            ])->default('pending');
 
             // Reservation status
-            $table->enum('reservation_status', ['pending', 'confirmed', 'cancelled', 'completed', 'noshow'])->default('pending');
+            $table->enum('reservation_status', [
+                'pending',
+                'confirmed',
+                'cancelled',
+                'completed'
+            ])->default('pending');
 
             // Walk-in flag
             $table->boolean('is_walkin')->default(false);
 
             $table->timestamps();
 
-            // Indexes for faster queries
+            // Indexes (performance optimization)
             $table->index('user_id');
-            $table->index(['user_id', 'date']);
+            $table->index('date');
+            $table->index('reservation_number');
+            $table->index('reservation_status');
+            $table->index('payment_status');
         });
     }
 
