@@ -49,7 +49,7 @@ return new class extends Migration {
                 'partially_paid',
                 'paid',
                 'failed',
-                'cancelled'
+                'refunded'
             ])->default('pending');
 
             // Reservation status

@@ -14,11 +14,12 @@ class OrderItem extends Model
         'order_id',
         'name',
         'description',
+        'ingredients',
         'price',
         'quantity',
         'category',
-        'is_spicy',
-        'is_vegetarian',
+        'best_seller',
+        'set',
         'image_url',
         'subtotal',
     ];
@@ -26,8 +27,8 @@ class OrderItem extends Model
     protected $casts = [
         'price' => 'decimal:2',
         'subtotal' => 'decimal:2',
-        'is_spicy' => 'boolean',
-        'is_vegetarian' => 'boolean',
+        'best_seller' => 'boolean',
+        'set' => 'boolean',
     ];
 
     public function order(): BelongsTo

@@ -9,32 +9,29 @@ use App\Models\User;
 class Reservation extends Model
 {
     protected $fillable = [
-        'user_id',
-        'reservation_number',
         'name',
         'email',
         'phone',
         'date',
         'time',
         'guests',
-        'occasion',
         'package',
+        'occasion',
         'dining_preference',
         'special_requests',
 
-        // fees
         'reservation_fee',
-        'down_payment',
-        'remaining_balance',
+        'service_charge',
         'total_fee',
+        'remaining_balance',
+        'down_payment',
 
-        // payment
         'payment_method',
         'payment_reference',
         'payment_receipt',
         'payment_status',
 
-        // status
+        'reservation_number',
         'reservation_status',
         'is_walkin',
     ];
@@ -46,6 +43,7 @@ class Reservation extends Model
         'is_walkin' => 'boolean',
 
         'reservation_fee' => 'decimal:2',
+        'service_charge' => 'decimal:2',
         'down_payment' => 'decimal:2',
         'remaining_balance' => 'decimal:2',
         'total_fee' => 'decimal:2',
@@ -92,9 +90,9 @@ class Reservation extends Model
     {
         return $query->where(function ($q) {
             $q->where('date', '<', now()->toDateString())
-              ->orWhereIn('reservation_status', ['completed', 'cancelled', 'noshow']);
+                ->orWhereIn('reservation_status', ['completed', 'cancelled', 'noshow']);
         })->orderByDesc('date')
-          ->orderByDesc('time');
+            ->orderByDesc('time');
     }
 
     public function scopeForUser($query, $userId)

@@ -16,11 +16,12 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->string('name');
             $table->text('description')->nullable();
+            $table->text('ingredients')->nullable();
             $table->decimal('price', 8, 2);
             $table->integer('quantity');
-            $table->string('category')->nullable();
-            $table->boolean('is_spicy')->default(false);
-            $table->boolean('is_vegetarian')->default(false);
+            $table->string('category');
+            $table->boolean('set')->default(false);
+            $table->boolean('best_seller')->default(false);
             $table->string('image_url')->nullable();
             $table->decimal('subtotal', 8, 2);
             $table->timestamps();

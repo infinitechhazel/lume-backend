@@ -21,31 +21,10 @@ class ReservationController extends Controller
         ]);
     }
 
-    public function checkDaily(Request $request)
-    {
-        $user = $request->user('sanctum');
-
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        }
-
-        $validated = $request->validate([
-            'date' => 'required|date',
-        ]);
-
-        $count = Reservation::where('user_id', $user->id)
-            ->where('date', $validated['date'])
-            ->whereIn('reservation_status', ['pending', 'confirmed'])
-            ->count();
-
-        return response()->json([
-            'success' => true,
-            'count' => $count,
-        ]);
-    }
-
     public function store(Request $request)
     {
+        Log::info('Incoming request:', $request->all());
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
@@ -53,31 +32,28 @@ class ReservationController extends Controller
             'date' => 'required|date|after_or_equal:today',
             'time' => 'required|date_format:H:i',
             'guests' => 'required|integer|min:1|max:100',
+
             'package' => 'nullable|string|max:255',
             'occasion' => 'nullable|string|max:255',
             'dining_preference' => 'nullable|string|max:255',
             'special_requests' => 'nullable|string|max:1000',
+
+            'reservation_fee' => 'nullable|numeric|min:0',
             'down_payment' => 'nullable|numeric|min:0',
+
             'payment_method' => 'nullable|string',
             'payment_reference' => 'nullable|string|max:255',
-            'payment_receipt' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            'payment_receipt' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'payment_status' => 'nullable|in:pending,partially_paid,paid,failed,refunded',
         ]);
 
+        // ✅ HANDLE FILE
         if ($request->hasFile('payment_receipt')) {
-            $file = $request->file('payment_receipt');
-            $filename = time().'_'.uniqid().'.'.$file->getClientOriginalExtension();
-
-            $uploadPath = public_path('uploads/reservation_receipts');
-            if (! file_exists($uploadPath)) {
-                mkdir($uploadPath, 0755, true);
-            }
-
-            $file->move($uploadPath, $filename);
-            $validated['payment_receipt'] = 'uploads/reservation_receipts/'.$filename;
-
-            Log::info('Payment screenshot uploaded:', ['path' => $validated['payment_receipt']]);
+            $path = $request->file('payment_receipt')->store('receipts', 'public');
+            $validated['payment_receipt'] = 'storage/' . $path;
         }
 
+        // ✅ PACKAGE FALLBACK
         $packagePrices = [
             "Skyline Social" => 5500,
             "Golden Hour" => 4000,
@@ -85,33 +61,33 @@ class ReservationController extends Controller
             "Midnight Luxe" => 6500,
         ];
 
-        $reservationFee = $packagePrices[$validated['package']] ?? 0;
+        $reservationFee = $validated['reservation_fee']
+            ?? ($packagePrices[$validated['package']] ?? 0);
+
         $downPayment = $validated['down_payment'] ?? 0;
 
-        $serviceCharge = $reservationFee * 0.10;
+        $serviceCharge = round($reservationFee * 0.10, 2);
         $remaining = max($reservationFee - $downPayment, 0);
-        $finalTotal = $remaining + $serviceCharge;
+        $total = round($remaining + $serviceCharge, 2);
 
         $validated['reservation_fee'] = $reservationFee;
         $validated['service_charge'] = $serviceCharge;
         $validated['remaining_balance'] = $remaining;
-        $validated['total_fee'] = $finalTotal;
+        $validated['total_fee'] = $total;
 
+        $validated['payment_status'] = $validated['payment_status'] ?? 'pending';
         $validated['reservation_status'] = 'pending';
         $validated['is_walkin'] = false;
 
-        // reservation number
         $today = now()->format('Ymd');
 
-        $last = Reservation::whereDate('created_at', now()->toDateString())
-            ->orderByDesc('id')
+        $last = Reservation::whereDate('created_at', now())
+            ->latest('id')
             ->first();
 
-        $next = 1;
-
-        if ($last && $last->reservation_number) {
-            $next = ((int) substr($last->reservation_number, -4)) + 1;
-        }
+        $next = $last
+            ? ((int) substr($last->reservation_number, -4)) + 1
+            : 1;
 
         $validated['reservation_number'] =
             'RES-' . $today . '-' . str_pad($next, 4, '0', STR_PAD_LEFT);
@@ -123,7 +99,6 @@ class ReservationController extends Controller
             'data' => $reservation,
         ], 201);
     }
-
     public function update(Request $request, Reservation $reservation)
     {
         $user = $request->user();
@@ -150,17 +125,22 @@ class ReservationController extends Controller
             'special_requests' => 'nullable|string|max:1000',
             'reservation_status' => 'sometimes|in:pending,confirmed,completed,cancelled',
             'down_payment' => 'nullable|numeric|min:0',
-            'payment_receipt' => 'required|image|mimes:jpg,jpeg,png|max:5120',
+            'payment_receipt' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'payment_status' => 'nullable|in:pending,partially_paid,paid,failed,refunded',
         ]);
 
         if ($request->hasFile('payment_receipt')) {
-            $file = $request->file('payment_receipt');
-            $path = $file->store('receipts', 'public');
+            $path = $request->file('payment_receipt')->store('receipts', 'public');
             $validated['payment_receipt'] = 'storage/' . $path;
+
+            Log::info('Payment screenshot uploaded:', [
+                'path' => $validated['payment_receipt']
+            ]);
         }
 
         $reservationFee = $validated['reservation_fee'] ?? $reservation->reservation_fee;
         $downPayment = $validated['down_payment'] ?? $reservation->down_payment;
+        $validated['payment_status'] = $validated['payment_status'] ?? $reservation->payment_status;
 
         $serviceCharge = $reservationFee * 0.10;
         $remaining = max($reservationFee - $downPayment, 0);
@@ -216,9 +196,8 @@ class ReservationController extends Controller
             return response()->json([
                 'success' => false,
                 'error' => 'Reservation not found',
-                'message' => 'The reservation with ID '.$id.' does not exist.',
+                'message' => 'The reservation with ID ' . $id . ' does not exist.',
             ], 404);
-
         } catch (\Exception $e) {
             Log::error('❌ Error deleting reservation:', [
                 'id' => $id,
@@ -302,7 +281,6 @@ class ReservationController extends Controller
                 'time' => $validated['time'],
                 'count' => count($occupiedTables),
             ]);
-
         } catch (\Exception $e) {
             Log::error('❌ Error getting occupied tables:', [
                 'error' => $e->getMessage(),
